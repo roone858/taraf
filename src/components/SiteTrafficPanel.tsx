@@ -71,7 +71,7 @@ const countryLabel = (c: string) => (c === "—" ? "غير معروف" : (region
 const asDate = (d: string) => new Date(`${d}T00:00:00Z`);
 
 type IconLike = LucideIcon | ((p: { className?: string }) => React.ReactElement);
-type Row = TopItem & { icon?: IconLike; emoji?: string };
+type Row = TopItem & { icon?: IconLike | undefined; emoji?: string | undefined };
 type Ok = Extract<SiteAnalytics, { status: "ok" }>;
 
 const SOURCE_ICONS: Record<string, IconLike> = {
