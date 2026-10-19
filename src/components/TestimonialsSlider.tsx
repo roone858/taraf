@@ -79,19 +79,27 @@ export function TestimonialsSlider({ items }: { items: Testimonial[] }) {
   const showNav = canPrev || canNext;
 
   return (
-    <section className="overflow-hidden bg-ivory py-24 md:py-28" aria-labelledby="testimonials-title">
+    <section
+      className="overflow-hidden bg-ivory py-24 md:py-28"
+      aria-labelledby="testimonials-title"
+    >
       <div className="mx-auto max-w-7xl px-5 lg:px-10">
         {/* Header */}
         <div className="mb-12 flex flex-wrap items-end justify-between gap-8">
           <div>
             <p className="eyebrow">آراء عملائنا</p>
-            <h2 id="testimonials-title" className="mt-3 font-display text-4xl text-navy md:text-5xl">
+            <h2
+              id="testimonials-title"
+              className="mt-3 font-display text-4xl text-navy md:text-5xl"
+            >
               ثقة تُبنى بالتفاصيل
             </h2>
           </div>
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3 border-s-2 border-gold ps-4">
-              <span className="font-display text-4xl leading-none text-navy">{num.format(avg)}</span>
+              <span className="font-display text-4xl leading-none text-navy">
+                {num.format(avg)}
+              </span>
               <div>
                 <Stars value={avg} />
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -174,8 +182,14 @@ export function TestimonialsSlider({ items }: { items: Testimonial[] }) {
                           {t.customer_name.trim().charAt(0)}
                         </span>
                         <span className="min-w-0">
-                          <span className="block truncate text-sm text-navy">{t.customer_name}</span>
-                          {t.city && <span className="block truncate text-xs text-muted-foreground">{t.city}</span>}
+                          <span className="block truncate text-sm text-navy">
+                            {t.customer_name}
+                          </span>
+                          {t.city && (
+                            <span className="block truncate text-xs text-muted-foreground">
+                              {t.city}
+                            </span>
+                          )}
                         </span>
                       </figcaption>
                     </figure>
