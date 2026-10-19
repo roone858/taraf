@@ -22,6 +22,9 @@ export function slugify(s: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+/** In-stock products at or below this quantity are flagged as low stock in the admin. */
+export const LOW_STOCK = 3;
+
 export const availabilityLabel: Record<string, string> = {
   in_stock: "متوفر",
   made_to_order: "حسب الطلب",

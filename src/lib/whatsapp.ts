@@ -31,6 +31,7 @@ export function buildOrderMessage(
   lines: CheckoutLine[],
   deliveryFee: number,
   currency = "EGP",
+  orderNumber?: string,
 ) {
   const t = computeTotals(lines, deliveryFee);
   const f = (n: number) => formatPrice(n, currency);
@@ -42,6 +43,7 @@ export function buildOrderMessage(
     .join("\n");
   return [
     "طلب جديد من موقع TARAF FURNITURE",
+    ...(orderNumber ? [`رقم الطلب: ${orderNumber}`] : []),
     "",
     `الاسم: ${customer.name}`,
     `الهاتف: ${customer.phone}`,

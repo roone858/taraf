@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Package, FolderTree, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, FolderTree, Settings, LogOut, ClipboardList } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,7 @@ function AdminLayout() {
 
   const nav = [
     { to: "/admin", label: "نظرة عامة", Icon: LayoutDashboard, exact: true },
+    { to: "/admin/orders", label: "الطلبات", Icon: ClipboardList },
     { to: "/admin/products", label: "المنتجات", Icon: Package },
     { to: "/admin/categories", label: "الفئات", Icon: FolderTree },
     { to: "/admin/settings", label: "الإعدادات", Icon: Settings },

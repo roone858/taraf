@@ -3,14 +3,17 @@ import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { settingsQuery } from "@/lib/data";
 import { useCart, type CartItem } from "@/lib/cart";
 import { effectivePrice, formatPrice } from "@/lib/format";
-import { buildOrderMessage, buildWhatsappUrl, normalizeWhatsappNumber } from "@/lib/whatsapp";
+import { orderErrorMessage } from "@/lib/orders";
+import { buildOrderMessage, buildWhatsappUrl, computeTotals, normalizeWhatsappNumber } from "@/lib/whatsapp";
 import { CartLines } from "@/components/CartDrawer";
+import { WhatsappIcon } from "@/components/BrandIcons";
 import { Button } from "@/components/ui/button";
 
 const schema = z.object({
@@ -38,13 +41,16 @@ function Checkout() {
   const cart = useCart();
   const { data: s } = useQuery(settingsQuery);
   const [busy, setBusy] = useState(false);
-  const [opened, setOpened] = useState(false);
+  const [placed, setPlaced] = useState<{ number: string; total: number; whatsappUrl: string | null } | null>(null);
+  const honeypot = useRef<HTMLInputElement>(null);
   const phone = normalizeWhatsappNumber(s?.whatsapp_number);
   const fee = Number(s?.delivery_fee ?? 0);
   const { register, handleSubmit, formState: { errors } } = useForm<Form>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (f: Form) => {
-    if (!phone) return;
+    if (busy) return;
+    // Bots fill hidden fields; humans can't see it. Silently ignore.
+    if (honeypot.current?.value) return;
     setBusy(true);
     try {
       const ids = [...new Set(cart.items.map((i) => i.productId))];
@@ -70,11 +76,24 @@ function Checkout() {
         toast.warning(problems.join(" — ") + ". يرجى المراجعة ثم الإرسال مرة أخرى.");
         return;
       }
-      const msg = buildOrderMessage(f, fresh.map((i) => ({ name: i.name, variant: i.variant, quantity: i.quantity, unitPrice: i.unitPrice })), fee, s?.currency);
-      window.open(buildWhatsappUrl(phone, msg), "_blank", "noopener");
-      setOpened(true);
+      // Record the order; prices and totals are recomputed server-side in place_order()
+      const { data: number, error: orderError } = await supabase.rpc("place_order", {
+        _customer: { name: f.name, phone: f.phone, city: f.city, address: f.address, notes: f.notes ?? "" },
+        _items: fresh.map((i) => ({ product_id: i.productId, quantity: i.quantity, variant: i.variant ?? null })),
+      });
+      if (orderError || !number) {
+        toast.error(orderErrorMessage(orderError?.message));
+        return;
+      }
+      const lines = fresh.map((i) => ({ name: i.name, variant: i.variant, quantity: i.quantity, unitPrice: i.unitPrice }));
+      const whatsappUrl = phone ? buildWhatsappUrl(phone, buildOrderMessage(f, lines, fee, s?.currency, number)) : null;
+      setPlaced({ number, total: computeTotals(lines, fee).total, whatsappUrl });
+      cart.clear();
+      window.scrollTo({ top: 0 });
+      // May be blocked as a popup after the awaits above; the confirmation screen has a button as fallback
+      if (whatsappUrl) window.open(whatsappUrl, "_blank", "noopener");
     } catch {
-      toast.error("تعذر التحقق من السلة. حاول مرة أخرى.");
+      toast.error("تعذر إرسال الطلب. حاول مرة أخرى.");
     } finally {
       setBusy(false);
     }
@@ -82,6 +101,35 @@ function Checkout() {
 
   const input = "mt-2 h-12 w-full border bg-ivory px-4 focus:outline-none focus:border-gold";
   const Err = ({ m }: { m?: string | undefined }) => (m ? <p className="mt-1 text-xs text-destructive">{m}</p> : null);
+
+  if (placed)
+    return (
+      <main className="flex min-h-[80vh] items-center justify-center px-5 pt-28 pb-16">
+        <div className="w-full max-w-lg bg-ivory p-8 text-center sm:p-10">
+          <CheckCircle2 className="mx-auto h-12 w-12 text-gold" />
+          <h1 className="mt-5 font-display text-3xl text-navy">تم تسجيل طلبك</h1>
+          <p className="mt-3 text-sm text-muted-foreground">رقم الطلب</p>
+          <p className="mt-1 font-display text-3xl tracking-wider text-navy" dir="ltr">{placed.number}</p>
+          <p className="mt-2 text-sm text-muted-foreground">الإجمالي التقديري: {formatPrice(placed.total, s?.currency)}</p>
+          <div className="my-6 h-px bg-gold/40" />
+          {placed.whatsappUrl ? (
+            <>
+              <p className="text-sm leading-relaxed text-navy">
+                لتسريع التأكيد، أرسل تفاصيل الطلب إلينا عبر واتساب. إن لم تُفتح المحادثة تلقائياً اضغط الزر.
+              </p>
+              <Button asChild className="mt-5 h-12 w-full gap-2 text-base">
+                <a href={placed.whatsappUrl} target="_blank" rel="noopener noreferrer">
+                  <WhatsappIcon className="h-5 w-5" /> أرسل الطلب عبر واتساب
+                </a>
+              </Button>
+            </>
+          ) : (
+            <p className="text-sm leading-relaxed text-navy">سيتواصل معك فريقنا قريباً على رقم هاتفك لتأكيد الطلب.</p>
+          )}
+          <Link to="/shop" className="mt-5 inline-block text-sm text-gold hover:text-navy">متابعة التسوق</Link>
+        </div>
+      </main>
+    );
 
   if (cart.items.length === 0)
     return (
@@ -102,26 +150,15 @@ function Checkout() {
           <label className="block text-sm">العنوان التفصيلي<textarea {...register("address")} rows={3} className={`${input} h-auto py-3`} /><Err m={errors.address?.message} /></label>
           <label className="block text-sm">ملاحظات (اختياري)<textarea {...register("notes")} rows={2} className={`${input} h-auto py-3`} /></label>
 
-          {!phone ? (
-            <p className="border border-destructive/40 p-4 text-sm text-destructive">
-              الطلب عبر واتساب غير متاح حالياً — لم يتم إعداد رقم واتساب المتجر بعد من لوحة التحكم.
-            </p>
-          ) : (
-            <Button type="submit" disabled={busy} className="h-14 w-full text-base">
-              {busy ? "جارٍ التحقق..." : "إرسال الطلب عبر واتساب"}
-            </Button>
-          )}
+          {/* Honeypot: hidden from people and assistive tech; bots tend to fill it */}
+          <input ref={honeypot} type="text" name="company" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" />
+          <Button type="submit" disabled={busy} className="h-14 w-full gap-2 text-base">
+            {busy && <Loader2 className="h-5 w-5 animate-spin" />}
+            {busy ? "جارٍ إرسال الطلب..." : "تأكيد الطلب"}
+          </Button>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            سيتم فتح واتساب برسالة جاهزة تحتوي على تفاصيل طلبك. لا يتم تأكيد الطلب أو استلامه تلقائياً — يجب إرسال الرسالة، وسيتواصل معك فريقنا للتأكيد.
+            يُسجَّل طلبك فور التأكيد ويظهر لك رقم الطلب{phone ? "، ثم يُفتح واتساب برسالة جاهزة بالتفاصيل لتسريع التواصل" : ""}. سيتواصل معك فريقنا لتأكيد الطلب وموعد التوصيل.
           </p>
-          {opened && (
-            <div className="border hairline bg-ivory p-4 text-sm">
-              <p>هل أرسلت الرسالة عبر واتساب؟</p>
-              <button type="button" onClick={() => { cart.clear(); toast.success("تم إفراغ السلة"); }} className="mt-2 text-gold underline">
-                نعم، أفرغ السلة
-              </button>
-            </div>
-          )}
         </form>
         <aside className="h-fit bg-ivory p-6">
           <h2 className="font-display text-2xl text-navy">ملخص الطلب</h2>

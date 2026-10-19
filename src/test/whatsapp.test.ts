@@ -18,4 +18,10 @@ describe("whatsapp checkout", () => {
     expect(url.startsWith("https://wa.me/201001234567?text=")).toBe(true);
     expect(decodeURIComponent(url.split("text=")[1]!)).toBe(msg);
   });
+  it("includes the order number when one is given", () => {
+    const customer = { name: "أحمد", phone: "010", city: "القاهرة", address: "x" };
+    const lines = [{ name: "كرسي", quantity: 1, unitPrice: 5 }];
+    expect(buildOrderMessage(customer, lines, 0, "SAR", "TRF-1024")).toContain("رقم الطلب: TRF-1024");
+    expect(buildOrderMessage(customer, lines, 0)).not.toContain("رقم الطلب");
+  });
 });
