@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Package, FolderTree, Settings, LogOut, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Package, FolderTree, Settings, LogOut, ClipboardList, MessageSquareQuote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,7 @@ function AdminLayout() {
     { to: "/admin/orders", label: "الطلبات", Icon: ClipboardList },
     { to: "/admin/products", label: "المنتجات", Icon: Package },
     { to: "/admin/categories", label: "الفئات", Icon: FolderTree },
+    { to: "/admin/testimonials", label: "آراء العملاء", Icon: MessageSquareQuote },
     { to: "/admin/settings", label: "الإعدادات", Icon: Settings },
   ] as const;
 

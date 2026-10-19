@@ -4,7 +4,8 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/ProductCard";
 import { Emblem } from "@/components/Logo";
-import { categoriesQuery, featuredQuery, newestQuery, settingsQuery } from "@/lib/data";
+import { categoriesQuery, featuredQuery, newestQuery, settingsQuery, testimonialsQuery } from "@/lib/data";
+import { TestimonialsSlider } from "@/components/TestimonialsSlider";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,6 +24,7 @@ function Home() {
   const { data: cats } = useQuery(categoriesQuery);
   const { data: featured } = useQuery(featuredQuery);
   const { data: newest } = useQuery(newestQuery);
+  const { data: testimonials } = useQuery(testimonialsQuery);
 
   return (
     <main>
@@ -133,6 +135,8 @@ function Home() {
           </div>
         </section>
       )}
+
+      {testimonials && testimonials.length > 0 && <TestimonialsSlider items={testimonials.slice(0, 12)} />}
 
       <section className="grid grid-cols-2 md:grid-cols-4">
         {["/images/cat-dining.jpg", "/images/p-table.jpg", "/images/cat-bedroom.jpg", "/images/cat-living.jpg"].map((src) => (

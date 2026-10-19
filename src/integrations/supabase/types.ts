@@ -304,6 +304,39 @@ export type Database = {
         }
         Relationships: []
       }
+      testimonials: {
+        Row: {
+          body: string
+          city: string | null
+          created_at: string
+          customer_name: string
+          id: string
+          is_published: boolean
+          rating: number
+          sort_order: number
+        }
+        Insert: {
+          body: string
+          city?: string | null
+          created_at?: string
+          customer_name: string
+          id?: string
+          is_published?: boolean
+          rating?: number
+          sort_order?: number
+        }
+        Update: {
+          body?: string
+          city?: string | null
+          created_at?: string
+          customer_name?: string
+          id?: string
+          is_published?: boolean
+          rating?: number
+          sort_order?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string

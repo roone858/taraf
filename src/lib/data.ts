@@ -5,6 +5,21 @@ import type { Database } from "@/integrations/supabase/types";
 export type Product = Database["public"]["Tables"]["products"]["Row"];
 export type Category = Database["public"]["Tables"]["categories"]["Row"];
 export type Settings = Database["public"]["Tables"]["store_settings"]["Row"];
+export type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
+
+export const testimonialsQuery = queryOptions({
+  queryKey: ["testimonials"],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from("testimonials")
+      .select("*")
+      .eq("is_published", true)
+      .order("sort_order")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+});
 
 export const settingsQuery = queryOptions({
   queryKey: ["settings"],
