@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { Emblem } from "@/components/Logo";
 import { categoriesQuery, featuredQuery, newestQuery, settingsQuery, testimonialsQuery } from "@/lib/data";
 import { TestimonialsSlider } from "@/components/TestimonialsSlider";
+import { FaqSection } from "@/components/FaqSection";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -137,6 +138,8 @@ function Home() {
       )}
 
       {testimonials && testimonials.length > 0 && <TestimonialsSlider items={testimonials.slice(0, 12)} />}
+
+      <FaqSection />
 
       <section className="grid grid-cols-2 md:grid-cols-4">
         {["/images/cat-dining.jpg", "/images/p-table.jpg", "/images/cat-bedroom.jpg", "/images/cat-living.jpg"].map((src) => (

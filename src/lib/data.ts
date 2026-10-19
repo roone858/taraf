@@ -6,6 +6,21 @@ export type Product = Database["public"]["Tables"]["products"]["Row"];
 export type Category = Database["public"]["Tables"]["categories"]["Row"];
 export type Settings = Database["public"]["Tables"]["store_settings"]["Row"];
 export type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
+export type Faq = Database["public"]["Tables"]["faqs"]["Row"];
+
+export const faqsQuery = queryOptions({
+  queryKey: ["faqs"],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from("faqs")
+      .select("*")
+      .eq("is_published", true)
+      .order("sort_order")
+      .order("created_at");
+    if (error) throw error;
+    return data;
+  },
+});
 
 export const testimonialsQuery = queryOptions({
   queryKey: ["testimonials"],

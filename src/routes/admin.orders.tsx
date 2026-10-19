@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Eye, Loader2, MapPin, Phone, Search, StickyNote, Trash2 } from "lucide-react";
+import { Eye, FileText, Loader2, MapPin, Phone, Search, StickyNote, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { settingsQuery } from "@/lib/data";
 import { formatPrice } from "@/lib/format";
@@ -30,6 +30,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { WhatsappIcon } from "@/components/BrandIcons";
+import { SendInvoiceWhatsapp } from "@/components/SendInvoiceWhatsapp";
 import { inp } from "./admin.categories";
 
 export const Route = createFileRoute("/admin/orders")({ component: Orders });
@@ -217,7 +218,18 @@ function Orders() {
                     <StatusBadge status={o.status} />
                   </td>
                   <td className="p-3">
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-1">
+                      <Link
+                        to="/admin/orders/$id/invoice"
+                        params={{ id: o.id }}
+                        target="_blank"
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`فاتورة ${o.order_number}`}
+                        title="الفاتورة (PDF)"
+                        className="flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-gold/15 hover:text-navy"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Link>
                       <span
                         className="flex h-8 w-8 items-center justify-center text-muted-foreground"
                         aria-hidden
@@ -237,6 +249,7 @@ function Orders() {
         key={open?.id}
         order={open}
         storeCurrency={settings?.currency}
+        storeName={settings?.store_name}
         onClose={() => setOpenId(null)}
         onChanged={refresh}
       />
@@ -255,11 +268,13 @@ function StatusBadge({ status }: { status: OrderStatus }) {
 function OrderDialog({
   order,
   storeCurrency,
+  storeName,
   onClose,
   onChanged,
 }: {
   order: OrderRow | null;
   storeCurrency: string | undefined;
+  storeName: string | undefined;
   onClose: () => void;
   onChanged: () => Promise<unknown>;
 }) {
@@ -458,9 +473,17 @@ function OrderDialog({
             ) : (
               <span />
             )}
-            <Button variant="outline" onClick={onClose} disabled={!!pending}>
-              إغلاق
-            </Button>
+            <div className="flex flex-wrap justify-end gap-2">
+              <SendInvoiceWhatsapp order={order} storeName={storeName} currency={storeCurrency} />
+              <Button asChild variant="outline" className="gap-2">
+                <Link to="/admin/orders/$id/invoice" params={{ id: order.id }} target="_blank">
+                  <FileText className="h-4 w-4" /> الفاتورة PDF
+                </Link>
+              </Button>
+              <Button variant="outline" onClick={onClose} disabled={!!pending}>
+                إغلاق
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

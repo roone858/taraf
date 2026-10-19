@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildWhatsappUrl, computeTotals, normalizeWhatsappNumber, buildOrderMessage } from "@/lib/whatsapp";
+import { buildWhatsappUrl, computeTotals, normalizeWhatsappNumber, buildOrderMessage, buildInvoiceMessage } from "@/lib/whatsapp";
 
 describe("whatsapp checkout", () => {
   it("strips plus, spaces and hyphens from the store number", () => {
@@ -23,5 +23,23 @@ describe("whatsapp checkout", () => {
     const lines = [{ name: "كرسي", quantity: 1, unitPrice: 5 }];
     expect(buildOrderMessage(customer, lines, 0, "SAR", "TRF-1024")).toContain("رقم الطلب: TRF-1024");
     expect(buildOrderMessage(customer, lines, 0)).not.toContain("رقم الطلب");
+  });
+  it("builds a text invoice with number, items and totals", () => {
+    const msg = buildInvoiceMessage({
+      storeName: "TARAF FURNITURE",
+      orderNumber: "TRF-1007",
+      createdAt: "2026-10-19T10:00:00Z",
+      customerName: "سارة",
+      statusLabel: "مؤكد",
+      currency: "SAR",
+      items: [{ product_name: "كرسي ملكي", variant: "ذهبي", quantity: 2, unit_price: 100, line_total: 200 }],
+      subtotal: 200,
+      deliveryFee: 50,
+      total: 250,
+    });
+    expect(msg).toContain("مرحباً سارة");
+    expect(msg).toContain("رقم الفاتورة: TRF-1007");
+    expect(msg).toContain("1. كرسي ملكي (ذهبي)");
+    expect(msg).toMatch(/الإجمالي: .*ر\.س/);
   });
 });

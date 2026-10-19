@@ -19,8 +19,6 @@ import { effectivePrice, formatPrice, LOW_STOCK } from "@/lib/format";
 import { orderStatusLabel, STOCK_HOLDING } from "@/lib/orders";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { SiteTrafficPanel } from "@/components/SiteTrafficPanel";
-
 export const Route = createFileRoute("/admin/")({ component: Overview });
 
 const dateFmt = new Intl.DateTimeFormat("ar-EG", { day: "numeric", month: "short" });
@@ -241,8 +239,6 @@ function Overview() {
           </Link>
         ))}
       </div>
-
-      <SiteTrafficPanel />
 
       <div className="mt-6 grid gap-6 lg:grid-flow-dense lg:grid-cols-3">
         {/* Needs attention */}

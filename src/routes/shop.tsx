@@ -8,6 +8,7 @@ import { categoriesQuery, settingsQuery } from "@/lib/data";
 import { CURRENCIES } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ProductCard } from "@/components/ProductCard";
+import { FaqSection } from "@/components/FaqSection";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
@@ -355,6 +356,8 @@ function Shop() {
           </>
         )}
       </div>
+
+      <FaqSection />
 
       {/* Mobile filters sheet */}
       <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>

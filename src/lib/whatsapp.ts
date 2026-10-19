@@ -63,3 +63,47 @@ export function buildOrderMessage(
 export function buildWhatsappUrl(phone: string, message: string) {
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
+
+export type InvoiceMessageInput = {
+  storeName: string;
+  orderNumber: string;
+  createdAt: string;
+  customerName: string;
+  statusLabel: string;
+  currency: string;
+  items: { product_name: string; variant: string | null; quantity: number; unit_price: number; line_total: number }[];
+  subtotal: number;
+  deliveryFee: number;
+  total: number;
+};
+
+/** Plain-text invoice for sending to the customer over WhatsApp (wa.me links can't carry file attachments). */
+export function buildInvoiceMessage(o: InvoiceMessageInput) {
+  const f = (n: number) => formatPrice(Number(n), o.currency);
+  const date = new Intl.DateTimeFormat("ar-EG", { year: "numeric", month: "long", day: "numeric" }).format(
+    new Date(o.createdAt),
+  );
+  const items = o.items
+    .map(
+      (i, idx) =>
+        `${idx + 1}. ${i.product_name}${i.variant ? ` (${i.variant})` : ""}\n   ${i.quantity} × ${f(i.unit_price)} = ${f(i.line_total)}`,
+    )
+    .join("\n");
+  return [
+    `مرحباً ${o.customerName}،`,
+    `فاتورة طلبك من ${o.storeName}`,
+    "",
+    `رقم الفاتورة: ${o.orderNumber}`,
+    `التاريخ: ${date}`,
+    `حالة الطلب: ${o.statusLabel}`,
+    "",
+    "المنتجات:",
+    items,
+    "",
+    `المجموع الفرعي: ${f(o.subtotal)}`,
+    `رسوم التوصيل: ${f(o.deliveryFee)}`,
+    `الإجمالي: ${f(o.total)}`,
+    "",
+    `شكراً لثقتكم في ${o.storeName}`,
+  ].join("\n");
+}

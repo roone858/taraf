@@ -250,7 +250,7 @@ function SettingsPage() {
       {/* Save bar — appears when there are unsaved changes */}
       <div
         className={cn(
-          "fixed inset-x-0 bottom-0 z-20 border-t hairline bg-navy/95 backdrop-blur transition-transform duration-300 md:start-60",
+          "fixed inset-x-0 bottom-0 z-20 border-t hairline bg-navy/95 backdrop-blur transition-transform duration-300 md:start-64",
           dirty || saving ? "translate-y-0" : "translate-y-full",
         )}
       >

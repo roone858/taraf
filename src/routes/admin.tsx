@@ -1,9 +1,24 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Package, FolderTree, Settings, LogOut, ClipboardList, MessageSquareQuote } from "lucide-react";
+import {
+  BarChart3,
+  ClipboardList,
+  ExternalLink,
+  FolderTree,
+  HelpCircle,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  MessageSquareQuote,
+  Package,
+  Settings,
+  X,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -51,43 +66,181 @@ function AdminLayout() {
       </div>
     );
 
-  const nav = [
-    { to: "/admin", label: "نظرة عامة", Icon: LayoutDashboard, exact: true },
-    { to: "/admin/orders", label: "الطلبات", Icon: ClipboardList },
-    { to: "/admin/products", label: "المنتجات", Icon: Package },
-    { to: "/admin/categories", label: "الفئات", Icon: FolderTree },
-    { to: "/admin/testimonials", label: "آراء العملاء", Icon: MessageSquareQuote },
-    { to: "/admin/settings", label: "الإعدادات", Icon: Settings },
-  ] as const;
+  return <AdminShell email={email} />;
+}
+
+const NAV_GROUPS = [
+  {
+    title: "الرئيسية",
+    items: [
+      { to: "/admin", label: "نظرة عامة", Icon: LayoutDashboard, exact: true },
+      { to: "/admin/visitors", label: "الزيارات", Icon: BarChart3 },
+    ],
+  },
+  { title: "المبيعات", items: [{ to: "/admin/orders", label: "الطلبات", Icon: ClipboardList, badge: "newOrders" }] },
+  {
+    title: "الكتالوج",
+    items: [
+      { to: "/admin/products", label: "المنتجات", Icon: Package },
+      { to: "/admin/categories", label: "الفئات", Icon: FolderTree },
+    ],
+  },
+  {
+    title: "المحتوى",
+    items: [
+      { to: "/admin/testimonials", label: "آراء العملاء", Icon: MessageSquareQuote },
+      { to: "/admin/faqs", label: "الأسئلة الشائعة", Icon: HelpCircle },
+    ],
+  },
+  { title: "النظام", items: [{ to: "/admin/settings", label: "الإعدادات", Icon: Settings }] },
+] as const;
+
+function AdminShell({ email }: { email: string | undefined }) {
+  const [menu, setMenu] = useState(false);
+  const { pathname } = useLocation();
+  useEffect(() => setMenu(false), [pathname]);
+
+  // New-order count for the sidebar badge
+  const { data: newOrders = 0 } = useQuery({
+    queryKey: ["admin", "new-orders-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "new");
+      if (error) throw error;
+      return count ?? 0;
+    },
+    refetchInterval: 60_000,
+  });
 
   return (
     <div className="flex min-h-screen flex-col bg-cream md:flex-row">
-      <aside className="bg-navy p-5 text-cream md:sticky md:top-0 md:h-screen md:w-60">
-        <Logo />
-        <nav className="mt-10 flex gap-1 overflow-x-auto md:flex-col">
-          {nav.map(({ to, label, Icon, ...rest }) => (
-            <Link
-              key={to}
-              to={to}
-              activeOptions={{ exact: "exact" in rest }}
-              className="flex items-center gap-3 whitespace-nowrap px-3 py-2.5 text-sm text-cream/75 hover:text-gold"
-              activeProps={{ className: "bg-ink text-gold border-r-2 border-gold" }}
-            >
-              <Icon className="h-4 w-4" /> {label}
-            </Link>
-          ))}
-        </nav>
-        <div className="mt-8 hidden border-t hairline pt-4 text-xs text-cream/60 md:block">
-          <p className="truncate">{email}</p>
-          <button onClick={() => supabase.auth.signOut()} className="mt-3 flex items-center gap-2 hover:text-gold">
-            <LogOut className="h-3 w-3" /> تسجيل الخروج
-          </button>
-          <Link to="/" className="mt-3 block hover:text-gold">عرض المتجر</Link>
-        </div>
+      {/* Desktop sidebar */}
+      <aside className="hidden bg-silk text-cream md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:border-e md:hairline">
+        <SidebarBody email={email} newOrders={newOrders} />
       </aside>
-      <main className="flex-1 p-5 md:p-10">
+
+      {/* Mobile top bar + drawer */}
+      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b hairline bg-navy px-4 md:hidden">
+        <Link to="/admin" aria-label="لوحة التحكم">
+          <Logo className="h-9" />
+        </Link>
+        <button
+          onClick={() => setMenu(true)}
+          className="relative flex h-10 w-10 items-center justify-center text-cream hover:text-gold"
+          aria-label="القائمة"
+        >
+          <Menu className="h-6 w-6" />
+          {newOrders > 0 && <span className="absolute top-1.5 end-1.5 h-2.5 w-2.5 rounded-full bg-gold" />}
+        </button>
+      </header>
+      <Sheet open={menu} onOpenChange={setMenu}>
+        <SheetContent side="right" dir="rtl" className="flex w-72 border-s-0 bg-silk p-0 text-cream [&>button]:hidden">
+          <SheetTitle className="sr-only">القائمة</SheetTitle>
+          <SidebarBody email={email} newOrders={newOrders} onClose={() => setMenu(false)} />
+        </SheetContent>
+      </Sheet>
+
+      <main className="min-w-0 flex-1 p-5 md:p-10">
         <Outlet />
       </main>
+    </div>
+  );
+}
+
+function SidebarBody({
+  email,
+  newOrders,
+  onClose,
+}: {
+  email: string | undefined;
+  newOrders: number;
+  onClose?: () => void;
+}) {
+  const item =
+    "group flex items-center gap-3 border-s-2 border-transparent px-3 py-2 text-sm text-cream/70 transition-colors hover:bg-cream/5 hover:text-cream";
+  return (
+    <div className="flex h-full w-full flex-col">
+      <div className="flex h-20 shrink-0 items-center justify-between border-b hairline px-5">
+        <Link to="/admin" onClick={onClose} aria-label="لوحة التحكم">
+          <Logo className="h-10" />
+        </Link>
+        {onClose && (
+          <button
+            onClick={onClose}
+            aria-label="إغلاق"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-gold/40 text-cream hover:border-gold hover:text-gold"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-6" aria-label="أقسام لوحة التحكم">
+        {NAV_GROUPS.map((g) => (
+          <div key={g.title}>
+            <p className="mb-2 px-3 text-[0.65rem] tracking-[0.2em] text-gold/80">{g.title}</p>
+            <ul className="space-y-0.5">
+              {g.items.map((it) => {
+                const count = "badge" in it && it.badge === "newOrders" ? newOrders : 0;
+                return (
+                  <li key={it.to}>
+                    <Link
+                      to={it.to}
+                      onClick={onClose}
+                      activeOptions={{ exact: "exact" in it && it.exact }}
+                      className={item}
+                      activeProps={{ className: "!border-gold bg-gold/10 !text-gold" }}
+                    >
+                      <it.Icon className="h-4 w-4 shrink-0 opacity-80 group-hover:opacity-100" />
+                      <span className="flex-1">{it.label}</span>
+                      {count > 0 && (
+                        <span
+                          className="min-w-5 rounded-full bg-gold px-1.5 text-center text-[0.65rem] leading-5 text-ink"
+                          aria-label={`${count} طلب جديد`}
+                        >
+                          {count}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+
+        <div>
+          <p className="mb-2 px-3 text-[0.65rem] tracking-[0.2em] text-gold/80">المتجر</p>
+          <a href="/" target="_blank" rel="noopener noreferrer" className={item}>
+            <ExternalLink className="h-4 w-4 shrink-0 opacity-80" />
+            <span className="flex-1">عرض المتجر</span>
+          </a>
+        </div>
+      </nav>
+
+      <div className="shrink-0 border-t hairline p-4">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gold/50 font-display text-gold">
+            {email?.charAt(0).toUpperCase() ?? "A"}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.7rem] text-cream/50">مسجّل الدخول</p>
+            <p className="truncate text-sm text-cream/90" dir="ltr" title={email}>
+              {email}
+            </p>
+          </div>
+          <button
+            onClick={() => supabase.auth.signOut()}
+            aria-label="تسجيل الخروج"
+            title="تسجيل الخروج"
+            className="flex h-9 w-9 shrink-0 items-center justify-center text-cream/60 transition-colors hover:text-gold"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

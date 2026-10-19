@@ -70,9 +70,9 @@ export const getSiteAnalytics = createServerFn({ method: "GET" })
       const [total, daily, pages, referrers, countries, devices] = await Promise.all([
         query("environment", 1),
         query("day"),
-        query("requestPath", 8),
-        query("referrerHostname", 6),
-        query("country", 6),
+        query("requestPath", 10),
+        query("referrerHostname", 8),
+        query("country", 8),
         query("deviceType", 4),
       ]);
       return {

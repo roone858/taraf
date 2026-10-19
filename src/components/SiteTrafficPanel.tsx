@@ -38,7 +38,7 @@ const pageLabel = (p: string) => {
 const countryLabel = (c: string) => (c === "—" ? "غير معروف" : (regionName?.of(c) ?? c));
 
 /** Admin dashboard panel: Vercel Web Analytics traffic (visits, visitors, daily trend, top lists). */
-export function SiteTrafficPanel() {
+export function SiteTrafficPanel({ className }: { className?: string }) {
   const [days, setDays] = useState<AnalyticsRange>(7);
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["admin", "site-analytics", days],
@@ -47,7 +47,7 @@ export function SiteTrafficPanel() {
   });
 
   return (
-    <section className="mt-6 bg-ivory p-5">
+    <section className={cn("bg-ivory p-5", className)}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b hairline pb-3">
         <h2 className="flex items-center gap-2 text-lg text-navy">
           <Activity className="h-5 w-5 text-gold" /> زيارات الموقع
@@ -166,7 +166,7 @@ function DailyBars({ daily }: { daily: { date: string; pageviews: number; visito
           aria-hidden
         />
         <div
-          className="flex h-40 items-end gap-[2px] border-b border-navy/20"
+          className="flex h-56 items-end gap-[2px] border-b border-navy/20"
           aria-hidden
           onMouseLeave={() => setHover(null)}
         >
