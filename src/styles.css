@@ -1,0 +1,99 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-display: "Cormorant Garamond", "Amiri", serif;
+  --font-sans: "El Messiri", serif;
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 2px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-navy: var(--navy);
+  --color-ink: var(--ink);
+  --color-gold: var(--gold);
+  --color-cream: var(--cream);
+  --color-ivory: var(--ivory);
+}
+
+:root {
+  --radius: 0.125rem;
+  --navy: oklch(0.29 0.06 260);      /* #172B49 */
+  --ink: oklch(0.19 0.03 260);       /* #0D1522 */
+  --gold: oklch(0.77 0.08 80);       /* #D0B17D */
+  --cream: oklch(0.95 0.015 85);     /* #F4EFE5 */
+  --ivory: oklch(0.985 0.006 85);
+
+  --background: var(--cream);
+  --foreground: var(--ink);
+  --card: var(--ivory);
+  --card-foreground: var(--ink);
+  --popover: var(--ivory);
+  --popover-foreground: var(--ink);
+  --primary: var(--navy);
+  --primary-foreground: var(--cream);
+  --secondary: oklch(0.91 0.02 85);
+  --secondary-foreground: var(--navy);
+  --muted: oklch(0.92 0.015 85);
+  --muted-foreground: oklch(0.45 0.03 260);
+  --accent: var(--gold);
+  --accent-foreground: var(--ink);
+  --destructive: oklch(0.55 0.18 27);
+  --destructive-foreground: var(--cream);
+  --border: oklch(0.85 0.03 85);
+  --input: oklch(0.85 0.03 85);
+  --ring: var(--gold);
+
+  --silk: radial-gradient(ellipse at 20% 0%, oklch(0.32 0.06 260) 0%, transparent 60%),
+    radial-gradient(ellipse at 90% 100%, oklch(0.25 0.05 260) 0%, transparent 55%),
+    var(--ink);
+  --veil: linear-gradient(to top, oklch(0.19 0.03 260 / 0.92), oklch(0.19 0.03 260 / 0.35) 55%, oklch(0.19 0.03 260 / 0.55));
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html { scroll-behavior: smooth; }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    line-height: 1.8;
+  }
+  h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0; line-height: 1.25; }
+}
+
+@utility font-display { font-family: var(--font-display); }
+@utility bg-silk { background: var(--silk); }
+@utility bg-veil { background: var(--veil); }
+@utility hairline { border-color: color-mix(in oklab, var(--gold) 45%, transparent); }
+@utility eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+@utility fade-up {
+  animation: fade-up 1.1s cubic-bezier(.2,.7,.2,1) both;
+}
+@keyframes fade-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
