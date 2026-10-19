@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { fillDays, rangeStart } from "./analytics-days";
 
 export type AnalyticsRange = 7 | 30 | 90;
 type Row = Record<string, unknown> & { pageviews?: number; visitors?: number; timestamp?: string };
@@ -12,6 +13,8 @@ export type SiteAnalytics =
       status: "ok";
       days: AnalyticsRange;
       totals: { pageviews: number; visitors: number };
+      /** Same-length period immediately before; null if outside the plan's reporting window. */
+      previous: { pageviews: number; visitors: number } | null;
       daily: { date: string; pageviews: number; visitors: number }[];
       pages: TopItem[];
       referrers: TopItem[];
@@ -20,7 +23,6 @@ export type SiteAnalytics =
     };
 
 const API = "https://api.vercel.com/v1/query/web-analytics/visits/aggregate";
-const ymd = (d: Date) => d.toISOString().slice(0, 10);
 const toItems = (rows: Row[], key: string): TopItem[] =>
   rows.map((r) => ({
     label: String(r[key] ?? "") || "—",
@@ -50,11 +52,22 @@ export const getSiteAnalytics = createServerFn({ method: "GET" })
     const teamId = process.env["VERCEL_TEAM_ID"];
     if (!token || !projectId) return { status: "not_configured" };
 
-    const until = new Date();
-    const since = new Date(until.getTime() - (data.days - 1) * 86_400_000);
+    // Range: from UTC midnight (days-1) days ago up to *now*. Passing a bare date for `until` would
+    // cut off at the start of today and silently drop today's traffic.
+    const now = Date.now();
+    const sinceMs = rangeStart(now, data.days);
 
-    const query = async (by: string, limit?: number): Promise<Row[]> => {
-      const params = new URLSearchParams({ projectId, by, since: ymd(since), until: ymd(until) });
+    const query = async (
+      by: string,
+      limit?: number,
+      range: [number, number] = [sinceMs, now],
+    ): Promise<Row[]> => {
+      const params = new URLSearchParams({
+        projectId,
+        by,
+        since: String(range[0]),
+        until: String(range[1]),
+      });
       if (limit) params.set("limit", String(limit));
       if (teamId) params.set("teamId", teamId);
       const res = await fetch(`${API}?${params}`, {
@@ -65,28 +78,31 @@ export const getSiteAnalytics = createServerFn({ method: "GET" })
       return json.data ?? [];
     };
 
+    // Previous period of equal length, ending just before the current one starts
+    const prevRange: [number, number] = [sinceMs - data.days * 86_400_000, sinceMs - 1];
+    const totalsOf = (rows: Row[]) => ({
+      pageviews: Number(rows[0]?.pageviews ?? 0),
+      visitors: Number(rows[0]?.visitors ?? 0),
+    });
+
     try {
       // Grouping by `environment` (production only, by default) yields one row = range totals with unique visitors
-      const [total, daily, pages, referrers, countries, devices] = await Promise.all([
+      const [total, daily, pages, referrers, countries, devices, previous] = await Promise.all([
         query("environment", 1),
         query("day"),
         query("requestPath", 10),
         query("referrerHostname", 8),
         query("country", 8),
         query("deviceType", 4),
+        // Comparison is optional: it may fall outside the plan's reporting window
+        query("environment", 1, prevRange).then(totalsOf, () => null),
       ]);
       return {
         status: "ok",
         days: data.days,
-        totals: {
-          pageviews: Number(total[0]?.pageviews ?? 0),
-          visitors: Number(total[0]?.visitors ?? 0),
-        },
-        daily: daily.map((r) => ({
-          date: String(r.timestamp ?? "").slice(0, 10),
-          pageviews: Number(r.pageviews ?? 0),
-          visitors: Number(r.visitors ?? 0),
-        })),
+        totals: totalsOf(total),
+        previous,
+        daily: fillDays(daily, sinceMs, data.days),
         pages: toItems(pages, "requestPath"),
         referrers: toItems(referrers, "referrerHostname"),
         countries: toItems(countries, "country"),
