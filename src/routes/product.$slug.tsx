@@ -72,7 +72,7 @@ function ProductPage() {
     cart.setOpen(true);
   };
 
-  const Chips = ({ items, value, onChange }: { items: string[]; value?: string; onChange: (v: string) => void }) => (
+  const Chips = ({ items, value, onChange }: { items: string[]; value?: string | undefined; onChange: (v: string) => void }) => (
     <div className="flex flex-wrap gap-2">
       {items.map((x) => (
         <button key={x} onClick={() => onChange(x)} className={`border px-4 py-2 text-sm ${value === x ? "border-navy bg-navy text-cream" : "hairline"}`}>

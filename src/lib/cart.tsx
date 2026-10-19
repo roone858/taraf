@@ -4,11 +4,11 @@ export type CartItem = {
   productId: string;
   slug: string;
   name: string;
-  image?: string;
-  variant?: string;
+  image?: string | undefined;
+  variant?: string | undefined;
   unitPrice: number;
   quantity: number;
-  maxQty?: number;
+  maxQty?: number | undefined;
 };
 
 type CartCtx = {

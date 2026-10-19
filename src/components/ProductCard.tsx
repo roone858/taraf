@@ -5,7 +5,7 @@ import type { Product } from "@/lib/data";
 import { useCart } from "@/lib/cart";
 import { availabilityLabel, effectivePrice, formatPrice } from "@/lib/format";
 
-export function ProductCard({ p, currency }: { p: Product; currency?: string }) {
+export function ProductCard({ p, currency }: { p: Product; currency?: string | undefined }) {
   const cart = useCart();
   const price = effectivePrice(p);
   const onSale = p.sale_price != null && Number(p.sale_price) < Number(p.price);
@@ -40,7 +40,7 @@ export function ProductCard({ p, currency }: { p: Product; currency?: string }) 
             {onSale && <span className="text-muted-foreground line-through">{formatPrice(Number(p.price), currency)}</span>}
           </div>
           {!unavailable && p.availability === "made_to_order" && (
-            <p className="mt-1 text-xs text-muted-foreground">{availabilityLabel.made_to_order}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{availabilityLabel["made_to_order"]}</p>
           )}
         </div>
         {!unavailable && !needsVariant && (
