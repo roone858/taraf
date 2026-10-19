@@ -16,6 +16,6 @@ describe("whatsapp checkout", () => {
     const msg = buildOrderMessage({ name: "أحمد", phone: "010", city: "القاهرة", address: "x" }, [{ name: "كرسي", quantity: 1, unitPrice: 5 }], 0);
     const url = buildWhatsappUrl("201001234567", msg);
     expect(url.startsWith("https://wa.me/201001234567?text=")).toBe(true);
-    expect(decodeURIComponent(url.split("text=")[1])).toBe(msg);
+    expect(decodeURIComponent(url.split("text=")[1]!)).toBe(msg);
   });
 });

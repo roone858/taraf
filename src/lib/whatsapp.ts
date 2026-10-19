@@ -2,7 +2,7 @@ import { formatPrice } from "./format";
 
 export type CheckoutLine = {
   name: string;
-  variant?: string;
+  variant?: string | undefined;
   quantity: number;
   unitPrice: number;
 };
@@ -12,7 +12,7 @@ export type CheckoutCustomer = {
   phone: string;
   city: string;
   address: string;
-  notes?: string;
+  notes?: string | undefined;
 };
 
 export function normalizeWhatsappNumber(raw: string | null | undefined): string | null {

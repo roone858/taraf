@@ -81,7 +81,7 @@ function Checkout() {
   };
 
   const input = "mt-2 h-12 w-full border bg-ivory px-4 focus:outline-none focus:border-gold";
-  const Err = ({ m }: { m?: string }) => (m ? <p className="mt-1 text-xs text-destructive">{m}</p> : null);
+  const Err = ({ m }: { m?: string | undefined }) => (m ? <p className="mt-1 text-xs text-destructive">{m}</p> : null);
 
   if (cart.items.length === 0)
     return (

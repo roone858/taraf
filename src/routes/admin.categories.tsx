@@ -50,6 +50,7 @@ function Categories() {
     toast.success("تم الحفظ");
     setEdit(null);
     refresh();
+    return undefined;
   };
 
   const remove = async (c: Category & { count: number }) => {
@@ -58,6 +59,7 @@ function Categories() {
     const { error } = await supabase.from("categories").delete().eq("id", c.id);
     if (error) return toast.error(error.message);
     refresh();
+    return undefined;
   };
 
   return (
