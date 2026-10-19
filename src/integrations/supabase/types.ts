@@ -14,16 +14,218 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          availability: string
+          category_id: string | null
+          colors: string[]
+          created_at: string
+          depth_cm: number | null
+          description: string | null
+          finishes: string[]
+          height_cm: number | null
+          id: string
+          images: string[]
+          is_featured: boolean
+          is_published: boolean
+          materials: string | null
+          name: string
+          price: number
+          sale_price: number | null
+          sku: string | null
+          slug: string
+          stock: number
+          updated_at: string
+          width_cm: number | null
+        }
+        Insert: {
+          availability?: string
+          category_id?: string | null
+          colors?: string[]
+          created_at?: string
+          depth_cm?: number | null
+          description?: string | null
+          finishes?: string[]
+          height_cm?: number | null
+          id?: string
+          images?: string[]
+          is_featured?: boolean
+          is_published?: boolean
+          materials?: string | null
+          name: string
+          price: number
+          sale_price?: number | null
+          sku?: string | null
+          slug: string
+          stock?: number
+          updated_at?: string
+          width_cm?: number | null
+        }
+        Update: {
+          availability?: string
+          category_id?: string | null
+          colors?: string[]
+          created_at?: string
+          depth_cm?: number | null
+          description?: string | null
+          finishes?: string[]
+          height_cm?: number | null
+          id?: string
+          images?: string[]
+          is_featured?: boolean
+          is_published?: boolean
+          materials?: string | null
+          name?: string
+          price?: number
+          sale_price?: number | null
+          sku?: string | null
+          slug?: string
+          stock?: number
+          updated_at?: string
+          width_cm?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_settings: {
+        Row: {
+          address: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          currency: string
+          delivery_fee: number
+          facebook_url: string | null
+          hero_image_url: string | null
+          hero_subtitle: string
+          hero_title: string
+          id: number
+          instagram_url: string | null
+          policies: string | null
+          promo_banner: string | null
+          store_name: string
+          story_body: string
+          story_title: string
+          twitter_url: string | null
+          updated_at: string
+          whatsapp_number: string | null
+        }
+        Insert: {
+          address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          currency?: string
+          delivery_fee?: number
+          facebook_url?: string | null
+          hero_image_url?: string | null
+          hero_subtitle?: string
+          hero_title?: string
+          id?: number
+          instagram_url?: string | null
+          policies?: string | null
+          promo_banner?: string | null
+          store_name?: string
+          story_body?: string
+          story_title?: string
+          twitter_url?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Update: {
+          address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          currency?: string
+          delivery_fee?: number
+          facebook_url?: string | null
+          hero_image_url?: string | null
+          hero_subtitle?: string
+          hero_title?: string
+          id?: number
+          instagram_url?: string | null
+          policies?: string | null
+          promo_banner?: string | null
+          store_name?: string
+          story_body?: string
+          story_title?: string
+          twitter_url?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +352,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin"],
+    },
   },
 } as const
