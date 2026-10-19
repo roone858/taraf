@@ -1,6 +1,12 @@
+/** Supported store currencies: code → [short price label, full Arabic name]. */
+export const CURRENCIES: Record<string, [string, string]> = {
+  EGP: ["ج.م", "جنيه مصري"],
+  SAR: ["ر.س", "ريال سعودي"],
+};
+
 export function formatPrice(value: number, currency = "EGP") {
   const n = new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 2 }).format(value);
-  const label = currency === "EGP" ? "ج.م" : currency;
+  const label = CURRENCIES[currency]?.[0] ?? currency;
   return `${n} ${label}`;
 }
 

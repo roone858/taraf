@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { settingsQuery, type Settings } from "@/lib/data";
+import { CURRENCIES } from "@/lib/format";
 import { uploadImage } from "@/lib/upload";
 import { Button } from "@/components/ui/button";
 import { Field, inp } from "./admin.categories";
@@ -51,7 +52,13 @@ function SettingsPage() {
       <div className="mt-8 space-y-4 bg-ivory p-6 text-sm">
         {fields.map(([k, label, long]) => (
           <Field key={k} label={label}>
-            {long ? (
+            {k === "currency" ? (
+              <select className={inp} value={String(d.currency ?? "EGP")} onChange={(e) => setD({ ...d, currency: e.target.value })}>
+                {Object.entries(CURRENCIES).map(([code, [short, name]]) => (
+                  <option key={code} value={code}>{name} ({short}) — {code}</option>
+                ))}
+              </select>
+            ) : long ? (
               <textarea className={`${inp} h-auto py-2`} rows={3} value={String(d[k] ?? "")} onChange={(e) => setD({ ...d, [k]: e.target.value })} />
             ) : (
               <input className={inp} value={String(d[k] ?? "")} onChange={(e) => setD({ ...d, [k]: e.target.value })} />

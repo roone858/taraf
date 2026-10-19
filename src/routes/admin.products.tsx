@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import type { Product } from "@/lib/data";
+import { settingsQuery, type Product } from "@/lib/data";
 import { formatPrice, slugify } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { ImageUploader } from "@/components/ImageUploader";
@@ -21,6 +21,7 @@ function Products() {
   const qc = useQueryClient();
   const [edit, setEdit] = useState<Draft | null>(null);
   const [q, setQ] = useState("");
+  const { data: settings } = useQuery(settingsQuery);
   const { data: cats } = useQuery({ queryKey: ["admin", "cats"], queryFn: async () => (await supabase.from("categories").select("id,name").order("sort_order")).data ?? [] });
   const { data } = useQuery({
     queryKey: ["admin", "products"],
@@ -67,7 +68,7 @@ function Products() {
             {rows.map((p) => (
               <tr key={p.id}>
                 <td className="flex items-center gap-3 p-3">{p.images[0] && <img src={p.images[0]} alt="" className="h-12 w-10 object-cover" />}{p.name}{p.is_featured && <span className="text-xs text-gold">مميز</span>}</td>
-                <td className="p-3 text-center">{formatPrice(Number(p.sale_price ?? p.price))}</td>
+                <td className="p-3 text-center">{formatPrice(Number(p.sale_price ?? p.price), settings?.currency)}</td>
                 <td className="p-3 text-center">{p.stock}</td>
                 <td className="p-3 text-center"><Switch checked={p.is_published} onCheckedChange={() => togglePub(p)} /></td>
                 <td className="whitespace-nowrap p-3 text-left">
