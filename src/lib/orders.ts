@@ -46,6 +46,10 @@ export function orderErrorMessage(message: string | undefined): string {
       return detail ? `«${detail}» لم يعد متاحاً` : "أحد المنتجات لم يعد متاحاً";
     case "insufficient_stock":
       return detail ? `الكمية المتوفرة من «${detail}» غير كافية` : "المخزون غير كافٍ لأحد المنتجات";
+    case "size_required":
+      return detail ? `اختر مقاس «${detail}» قبل إرسال الطلب` : "اختر المقاس قبل إرسال الطلب";
+    case "size_unavailable":
+      return detail ? `المقاس المختار من «${detail}» لم يعد متاحاً` : "أحد المقاسات المختارة لم يعد متاحاً";
     case "forbidden":
       return "ليست لديك صلاحية لهذا الإجراء";
     case "not_found":

@@ -11,7 +11,15 @@ const CLAMP_AT = 220;
 const num = new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 1 });
 
 /** Home-page testimonials: RTL carousel with arrows, dots, swipe, keyboard and paused-on-interaction autoplay. */
-export function TestimonialsSlider({ items }: { items: Testimonial[] }) {
+export function TestimonialsSlider({
+  items,
+  eyebrow = "آراء عملائنا",
+  title = "ثقة تُبنى بالتفاصيل",
+}: {
+  items: Testimonial[];
+  eyebrow?: string;
+  title?: string;
+}) {
   const [viewportRef, api] = useEmblaCarousel({
     direction: "rtl",
     align: "start",
@@ -87,12 +95,12 @@ export function TestimonialsSlider({ items }: { items: Testimonial[] }) {
         {/* Header */}
         <div className="mb-12 flex flex-wrap items-end justify-between gap-8">
           <div>
-            <p className="eyebrow">آراء عملائنا</p>
+            {eyebrow && <p className="eyebrow">{eyebrow}</p>}
             <h2
               id="testimonials-title"
               className="mt-3 font-display text-4xl text-navy md:text-5xl"
             >
-              ثقة تُبنى بالتفاصيل
+              {title}
             </h2>
           </div>
           <div className="flex items-center gap-6">

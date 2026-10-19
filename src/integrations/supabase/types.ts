@@ -194,12 +194,14 @@ export type Database = {
           height_cm: number | null
           id: string
           images: string[]
+          is_bestseller: boolean
           is_featured: boolean
           is_published: boolean
           materials: string | null
           name: string
           price: number
           sale_price: number | null
+          sizes: Json
           sku: string | null
           slug: string
           stock: number
@@ -217,12 +219,14 @@ export type Database = {
           height_cm?: number | null
           id?: string
           images?: string[]
+          is_bestseller?: boolean
           is_featured?: boolean
           is_published?: boolean
           materials?: string | null
           name: string
           price: number
           sale_price?: number | null
+          sizes?: Json
           sku?: string | null
           slug: string
           stock?: number
@@ -240,12 +244,14 @@ export type Database = {
           height_cm?: number | null
           id?: string
           images?: string[]
+          is_bestseller?: boolean
           is_featured?: boolean
           is_published?: boolean
           materials?: string | null
           name?: string
           price?: number
           sale_price?: number | null
+          sizes?: Json
           sku?: string | null
           slug?: string
           stock?: number
@@ -273,6 +279,7 @@ export type Database = {
           hero_image_url: string | null
           hero_subtitle: string
           hero_title: string
+          home_config: Json
           id: number
           instagram_url: string | null
           policies: string | null
@@ -295,6 +302,7 @@ export type Database = {
           hero_image_url?: string | null
           hero_subtitle?: string
           hero_title?: string
+          home_config?: Json
           id?: number
           instagram_url?: string | null
           policies?: string | null
@@ -317,6 +325,7 @@ export type Database = {
           hero_image_url?: string | null
           hero_subtitle?: string
           hero_title?: string
+          home_config?: Json
           id?: number
           instagram_url?: string | null
           policies?: string | null

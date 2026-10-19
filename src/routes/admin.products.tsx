@@ -2,10 +2,25 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Copy, ImageOff, Loader2, Pencil, Plus, Search, Star, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Flame,
+  Copy,
+  ImageOff,
+  Loader2,
+  Pencil,
+  Plus,
+  Ruler,
+  Search,
+  Star,
+  Trash2,
+  X,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { settingsQuery, type Product } from "@/lib/data";
 import { availabilityLabel, effectivePrice, formatPrice, LOW_STOCK, slugify } from "@/lib/format";
+import { cleanSizes, productSizes, type SizeOption } from "@/lib/sizes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ImageUploader } from "@/components/ImageUploader";
@@ -26,7 +41,12 @@ import { Field, inp } from "./admin.categories";
 export const Route = createFileRoute("/admin/products")({ component: Products });
 
 /** Form state: price may be empty while editing. */
-type Draft = Omit<Partial<Product>, "price"> & { price?: number | null };
+/** Form state: price may be empty while editing; sizes are parsed from the jsonb column. */
+type Draft = Omit<Partial<Product>, "price" | "sizes"> & {
+  price?: number | null;
+  sizes?: SizeOption[];
+};
+const toDraft = (p: Product): Draft => ({ ...p, sizes: productSizes(p) });
 type StatusFilter = "all" | "published" | "draft";
 
 const PRODUCTS_KEY = ["admin", "products"] as const;
@@ -42,6 +62,7 @@ const blank = (): Draft => ({
   images: [],
   finishes: [],
   colors: [],
+  sizes: [],
   is_published: false,
   is_featured: false,
 });
@@ -53,6 +74,11 @@ function validate(d: Draft): string | null {
     return "سعر العرض يجب أن يكون أقل من السعر الأصلي";
   if (d.stock != null && (d.stock < 0 || !Number.isInteger(d.stock)))
     return "المخزون يجب أن يكون عدداً صحيحاً غير سالب";
+  const labels = (d.sizes ?? []).map((s) => s.label.trim());
+  if (labels.some((l) => !l)) return "اكتب اسم كل مقاس أو احذف الصف الفارغ";
+  if (new Set(labels).size !== labels.length) return "يوجد مقاس مكرر";
+  if ((d.sizes ?? []).some((s) => s.price != null && s.price <= 0))
+    return "سعر المقاس يجب أن يكون أكبر من صفر";
   return null;
 }
 
@@ -141,8 +167,10 @@ function Products() {
       materials: edit.materials?.trim() || null,
       finishes: edit.finishes ?? [],
       colors: edit.colors ?? [],
+      sizes: cleanSizes(edit.sizes ?? []),
       is_published: edit.is_published ?? false,
       is_featured: edit.is_featured ?? false,
+      is_bestseller: edit.is_bestseller ?? false,
       updated_at: new Date().toISOString(),
     };
     const { error } = edit.id
@@ -168,22 +196,25 @@ function Products() {
   };
 
   /** Optimistic toggle of a boolean flag; reverts via refetch on failure. */
-  const toggle = async (p: Product, field: "is_published" | "is_featured") => {
+  const toggle = async (p: Product, field: "is_published" | "is_featured" | "is_bestseller") => {
     const value = !p[field];
     qc.setQueryData<Product[]>(PRODUCTS_KEY, (old) =>
       old?.map((x) => (x.id === p.id ? { ...x, [field]: value } : x)),
     );
-    const { error } = await supabase
-      .from("products")
-      .update(field === "is_published" ? { is_published: value } : { is_featured: value })
-      .eq("id", p.id);
+    const patch =
+      field === "is_published"
+        ? { is_published: value }
+        : field === "is_featured"
+          ? { is_featured: value }
+          : { is_bestseller: value };
+    const { error } = await supabase.from("products").update(patch).eq("id", p.id);
     if (error) toast.error("تعذر تحديث المنتج");
     refresh();
   };
 
   const duplicate = (p: Product) => {
     const { id: _id, created_at: _c, updated_at: _u, slug: _s, ...rest } = p;
-    setEdit({ ...rest, name: `${p.name} (نسخة)`, is_published: false });
+    setEdit({ ...rest, sizes: productSizes(p), name: `${p.name} (نسخة)`, is_published: false });
   };
 
   const set = (patch: Draft) => setEdit((d) => ({ ...d, ...patch }));
@@ -255,13 +286,14 @@ function Products() {
 
       {/* Table */}
       <div className="mt-4 overflow-x-auto bg-ivory">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="w-full min-w-[820px] text-sm">
           <thead className="border-b text-xs text-muted-foreground">
             <tr>
               <th className="p-3 text-start font-normal">المنتج</th>
               <th className="p-3 text-start font-normal">السعر</th>
               <th className="p-3 text-start font-normal">المخزون</th>
               <th className="p-3 text-center font-normal">مميز</th>
+              <th className="p-3 text-center font-normal">الأكثر مبيعاً</th>
               <th className="p-3 text-center font-normal">منشور</th>
               <th className="p-3" />
             </tr>
@@ -270,14 +302,14 @@ function Products() {
             {isLoading &&
               Array.from({ length: 4 }, (_, i) => (
                 <tr key={i}>
-                  <td colSpan={6} className="p-3">
+                  <td colSpan={7} className="p-3">
                     <div className="h-12 animate-pulse bg-cream" />
                   </td>
                 </tr>
               ))}
             {isError && (
               <tr>
-                <td colSpan={6} className="p-10 text-center text-muted-foreground">
+                <td colSpan={7} className="p-10 text-center text-muted-foreground">
                   تعذر تحميل المنتجات.{" "}
                   <button onClick={() => refetch()} className="text-navy underline hover:text-gold">
                     إعادة المحاولة
@@ -287,7 +319,7 @@ function Products() {
             )}
             {!isLoading && !isError && rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-10 text-center text-muted-foreground">
+                <td colSpan={7} className="p-10 text-center text-muted-foreground">
                   {all.length === 0
                     ? "لا توجد منتجات بعد. ابدأ بإضافة أول منتج."
                     : "لا توجد نتائج مطابقة للبحث أو الفلاتر."}
@@ -310,7 +342,7 @@ function Products() {
                       )}
                       <div className="min-w-0">
                         <button
-                          onClick={() => setEdit(p)}
+                          onClick={() => setEdit(toDraft(p))}
                           className="block truncate text-start text-navy hover:text-gold"
                         >
                           {p.name}
@@ -347,6 +379,24 @@ function Products() {
                     </button>
                   </td>
                   <td className="p-3 text-center">
+                    <button
+                      onClick={() => toggle(p, "is_bestseller")}
+                      aria-pressed={p.is_bestseller}
+                      aria-label={
+                        p.is_bestseller ? "إزالة من الأكثر مبيعاً" : "إضافة إلى الأكثر مبيعاً"
+                      }
+                      title={p.is_bestseller ? "إزالة من الأكثر مبيعاً" : "إضافة إلى الأكثر مبيعاً"}
+                      className={cn(
+                        "inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                        p.is_bestseller
+                          ? "bg-gold/15 text-gold"
+                          : "text-muted-foreground/40 hover:text-gold",
+                      )}
+                    >
+                      <Flame className="h-4 w-4" fill={p.is_bestseller ? "currentColor" : "none"} />
+                    </button>
+                  </td>
+                  <td className="p-3 text-center">
                     <Switch
                       checked={p.is_published}
                       onCheckedChange={() => toggle(p, "is_published")}
@@ -355,7 +405,7 @@ function Products() {
                   </td>
                   <td className="p-3">
                     <div className="flex justify-end gap-1">
-                      <IconBtn label="تعديل" onClick={() => setEdit(p)}>
+                      <IconBtn label="تعديل" onClick={() => setEdit(toDraft(p))}>
                         <Pencil className="h-4 w-4" />
                       </IconBtn>
                       <IconBtn label="نسخ" onClick={() => duplicate(p)}>
@@ -377,7 +427,7 @@ function Products() {
       <Dialog open={!!edit} onOpenChange={(o) => !o && !saving && setEdit(null)}>
         <DialogContent
           dir="rtl"
-          className="flex max-h-[92vh] flex-col gap-0 bg-ivory p-0 sm:max-w-3xl"
+          className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 bg-ivory p-0 sm:max-w-3xl"
         >
           <DialogHeader className="border-b px-6 py-4 text-start">
             <DialogTitle className="font-display text-2xl text-navy">
@@ -481,6 +531,19 @@ function Products() {
                   </Field>
                 </Section>
 
+                <section>
+                  <h3 className="eyebrow mb-1 border-b hairline pb-2 font-sans">المقاسات</h3>
+                  <SizesEditor
+                    sizes={edit.sizes ?? []}
+                    onChange={(sizes) => set({ sizes })}
+                    basePrice={
+                      edit.sale_price != null && edit.price != null && edit.sale_price < edit.price
+                        ? edit.sale_price
+                        : edit.price
+                    }
+                  />
+                </section>
+
                 <Section title="الأبعاد والخامات" cols={3}>
                   <Field label="العرض (سم)">
                     <NumberInput
@@ -556,6 +619,13 @@ function Products() {
                     onCheckedChange={(v) => set({ is_featured: v })}
                   />{" "}
                   مميز
+                </label>
+                <label className="flex items-center gap-2">
+                  <Switch
+                    checked={edit.is_bestseller ?? false}
+                    onCheckedChange={(v) => set({ is_bestseller: v })}
+                  />{" "}
+                  الأكثر مبيعاً
                 </label>
                 <div className="ms-auto flex gap-2">
                   <Button variant="outline" onClick={() => setEdit(null)} disabled={saving}>
@@ -655,6 +725,108 @@ function StockBadge({ p }: { p: Product }) {
     >
       {p.stock} قطعة
     </span>
+  );
+}
+
+/** Size options editor: label + optional price (empty = the product's price). */
+function SizesEditor({
+  sizes,
+  onChange,
+  basePrice,
+}: {
+  sizes: SizeOption[];
+  onChange: (sizes: SizeOption[]) => void;
+  basePrice: number | null | undefined;
+}) {
+  const update = (i: number, patch: Partial<SizeOption>) =>
+    onChange(sizes.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= sizes.length) return;
+    const next = [...sizes];
+    [next[i], next[j]] = [next[j]!, next[i]!];
+    onChange(next);
+  };
+  const labels = sizes.map((s) => s.label.trim());
+  const duplicate = (i: number) => !!labels[i] && labels.indexOf(labels[i]!) !== i;
+
+  return (
+    <div>
+      <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
+        اختياري. عند إضافة مقاسات يجب على العميل اختيار مقاس قبل الإضافة للسلة. اترك السعر فارغاً
+        ليُستخدم سعر المنتج{basePrice ? ` (${basePrice})` : ""}.
+      </p>
+      {sizes.length > 0 && (
+        <ul className="mb-3 space-y-2">
+          {sizes.map((s, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <div className="flex shrink-0 flex-col pt-1">
+                <button
+                  type="button"
+                  onClick={() => move(i, -1)}
+                  disabled={i === 0}
+                  aria-label="تقديم"
+                  className="text-muted-foreground hover:text-navy disabled:opacity-25"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => move(i, 1)}
+                  disabled={i === sizes.length - 1}
+                  aria-label="تأخير"
+                  className="text-muted-foreground hover:text-navy disabled:opacity-25"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="grid flex-1 grid-cols-[1fr_9rem] gap-2">
+                <div>
+                  <input
+                    className={cn(
+                      inp,
+                      (duplicate(i) || !s.label.trim()) && "border-destructive/60",
+                    )}
+                    value={s.label}
+                    onChange={(e) => update(i, { label: e.target.value })}
+                    placeholder="مثال: ١٦٠×٢٠٠ سم"
+                    maxLength={60}
+                    aria-label={`اسم المقاس ${i + 1}`}
+                  />
+                  {duplicate(i) && (
+                    <span className="mt-1 block text-xs text-destructive">مقاس مكرر</span>
+                  )}
+                </div>
+                <NumberInput
+                  value={s.price}
+                  onChange={(price) => update(i, { price })}
+                  min={0}
+                  placeholder="سعر المنتج"
+                  aria-label={`سعر المقاس ${i + 1}`}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => onChange(sizes.filter((_, j) => j !== i))}
+                aria-label="حذف المقاس"
+                className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => onChange([...sizes, { label: "", price: null }])}
+        className="gap-2"
+      >
+        <Ruler className="h-4 w-4" /> إضافة مقاس
+      </Button>
+    </div>
   );
 }
 

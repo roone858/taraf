@@ -1,15 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Facebook, Instagram, Loader2, RotateCcw, Twitter } from "lucide-react";
+import { Facebook, Instagram, LayoutTemplate, Loader2, RotateCcw, Twitter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { settingsQuery, type Settings } from "@/lib/data";
 import { CURRENCIES } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SnapchatIcon, WhatsappIcon } from "@/components/BrandIcons";
-import { SingleImageUpload } from "@/components/SingleImageUpload";
 import { Field, inp } from "./admin.categories";
 
 export const Route = createFileRoute("/admin/settings")({ component: SettingsPage });
@@ -24,7 +23,6 @@ const NULLABLE = [
   "facebook_url",
   "snapchat_url",
   "twitter_url",
-  "promo_banner",
   "policies",
 ] as const;
 
@@ -52,7 +50,19 @@ function SettingsPage() {
     const fee = Number(d.delivery_fee ?? 0);
     if (Number.isNaN(fee) || fee < 0) return void toast.error("رسوم التوصيل غير صحيحة");
     setSaving(true);
-    const { id: _id, updated_at: _u, ...rest } = d as Settings;
+    // Home-page fields are owned by Admin → الصفحة الرئيسية; never write them from here
+    const {
+      id: _id,
+      updated_at: _u,
+      hero_title: _ht,
+      hero_subtitle: _hs,
+      hero_image_url: _hi,
+      promo_banner: _pb,
+      story_title: _st,
+      story_body: _sb,
+      home_config: _hc,
+      ...rest
+    } = d as Settings;
     const row = {
       ...rest,
       store_name: rest.store_name.trim(),
@@ -192,49 +202,14 @@ function SettingsPage() {
           </Field>
         </Section>
 
-        <Section title="الصفحة الرئيسية" description="محتوى الواجهة الأولى التي يراها الزائر.">
+        <Section title="الصفحة الرئيسية" description="الواجهة، شريط العروض، قصتنا، وترتيب الأقسام.">
           <div className="sm:col-span-2">
-            <SingleImageUpload
-              label="صورة الواجهة"
-              folder="hero"
-              url={d.hero_image_url ?? null}
-              onChange={(hero_image_url) => set({ hero_image_url })}
-              emptyTitle="اختر صورة للواجهة"
-              emptyHint="يُفضّل صورة أفقية بعرض ١٩٢٠ بكسل على الأقل · بدونها تُستخدم الصورة الافتراضية"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <Field label="عنوان الواجهة">
-              <input className={inp} {...text("hero_title")} />
-            </Field>
-          </div>
-          <div className="sm:col-span-2">
-            <Field label="النص التعريفي">
-              <textarea rows={2} className={cn(inp, "h-auto py-2")} {...text("hero_subtitle")} />
-            </Field>
-          </div>
-          <div className="sm:col-span-2">
-            <Field label="شريط العروض">
-              <input
-                className={inp}
-                placeholder="مثال: خصم ١٠٪ على غرف النوم هذا الشهر"
-                {...text("promo_banner")}
-              />
-            </Field>
-            <Hint>يظهر كشريط ذهبي أسفل الواجهة. اتركه فارغاً لإخفائه.</Hint>
-          </div>
-        </Section>
-
-        <Section title="قصتنا" description="القسم التعريفي بالعلامة في الصفحة الرئيسية.">
-          <div className="sm:col-span-2">
-            <Field label="العنوان">
-              <input className={inp} {...text("story_title")} />
-            </Field>
-          </div>
-          <div className="sm:col-span-2">
-            <Field label="النص">
-              <textarea rows={4} className={cn(inp, "h-auto py-2")} {...text("story_body")} />
-            </Field>
+            <p className="text-muted-foreground">انتقلت إعدادات الصفحة الرئيسية إلى صفحة مستقلة.</p>
+            <Button asChild variant="outline" className="mt-3 gap-2">
+              <Link to="/admin/home">
+                <LayoutTemplate className="h-4 w-4" /> تعديل الصفحة الرئيسية
+              </Link>
+            </Button>
           </div>
         </Section>
 

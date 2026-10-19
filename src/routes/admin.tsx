@@ -8,6 +8,7 @@ import {
   FolderTree,
   HelpCircle,
   LayoutDashboard,
+  LayoutTemplate,
   LogOut,
   Menu,
   MessageSquareQuote,
@@ -88,6 +89,7 @@ const NAV_GROUPS = [
   {
     title: "المحتوى",
     items: [
+      { to: "/admin/home", label: "الصفحة الرئيسية", Icon: LayoutTemplate },
       { to: "/admin/testimonials", label: "آراء العملاء", Icon: MessageSquareQuote },
       { to: "/admin/faqs", label: "الأسئلة الشائعة", Icon: HelpCircle },
     ],

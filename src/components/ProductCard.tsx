@@ -1,37 +1,59 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Check, Plus } from "lucide-react";
+import { ArrowLeft, Check, Flame, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { Product } from "@/lib/data";
 import { useCart } from "@/lib/cart";
 import { availabilityLabel, effectivePrice, formatPrice, LOW_STOCK } from "@/lib/format";
+import { priceRange, productSizes, unitPrice } from "@/lib/sizes";
 import { cn } from "@/lib/utils";
+import { WhatsappIcon } from "./BrandIcons";
+import { QuickOrderDialog } from "./QuickOrderDialog";
 
 export function ProductCard({ p, currency }: { p: Product; currency?: string | undefined }) {
   const cart = useCart();
   const [added, setAdded] = useState(false);
-  const price = effectivePrice(p);
-  const onSale = p.sale_price != null && Number(p.sale_price) < Number(p.price);
+  const [size, setSize] = useState<string>();
+  const [nudge, setNudge] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
+  const sizes = productSizes(p);
+  const hasSizes = sizes.length > 0;
+  const hasOptions = p.finishes.length > 0 || p.colors.length > 0;
+  // Sizes alone can be picked right on the card; finishes/colours still need the product page
+  const quickSizes = hasSizes && !hasOptions;
+  const selected = sizes.find((s) => s.label === size);
+  const price = unitPrice(p, size);
+  const onSale = p.sale_price != null && Number(p.sale_price) < Number(p.price) && !selected?.price;
   const discount = onSale ? Math.round((1 - Number(p.sale_price) / Number(p.price)) * 100) : 0;
   const unavailable =
     p.availability === "unavailable" || (p.availability === "in_stock" && p.stock <= 0);
   const lowStock = !unavailable && p.availability === "in_stock" && p.stock <= LOW_STOCK;
-  const needsVariant = p.finishes.length > 0 || p.colors.length > 0;
+  const range = priceRange(p);
+  const fromPrice = hasSizes && !size && range.min !== range.max;
   const [img1, img2] = p.images;
+  const MAX_CHIPS = 4;
 
   const add = () => {
+    if (quickSizes && !size) {
+      setNudge(true);
+      window.setTimeout(() => setNudge(false), 1400);
+      toast.message("اختر المقاس أولاً");
+      return;
+    }
     cart.add({
       productId: p.id,
       slug: p.slug,
       name: p.name,
       image: img1,
+      variant: size,
+      size,
       unitPrice: price,
       quantity: 1,
       maxQty: p.availability === "in_stock" ? p.stock : undefined,
     });
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1600);
-    toast.success(`أُضيف «${p.name}» إلى السلة`, {
+    toast.success(`أُضيف «${p.name}»${size ? ` (${size})` : ""} إلى السلة`, {
       action: { label: "عرض السلة", onClick: () => cart.setOpen(true) },
     });
   };
@@ -65,7 +87,12 @@ export function ProductCard({ p, currency }: { p: Product; currency?: string | u
             {onSale && (
               <span className="bg-gold px-2.5 py-1 text-xs text-ink">خصم {discount}٪</span>
             )}
-            {p.is_featured && !onSale && (
+            {p.is_bestseller && (
+              <span className="flex items-center gap-1 bg-ivory/95 px-2.5 py-1 text-xs text-navy">
+                <Flame className="h-3 w-3 text-gold" /> الأكثر مبيعاً
+              </span>
+            )}
+            {p.is_featured && !onSale && !p.is_bestseller && (
               <span className="bg-navy/85 px-2.5 py-1 text-xs text-cream">مميز</span>
             )}
           </div>
@@ -85,8 +112,11 @@ export function ProductCard({ p, currency }: { p: Product; currency?: string | u
             </h3>
           </Link>
           <div className="mt-1 flex flex-wrap items-baseline gap-x-3 text-sm">
-            <span className="text-navy">{formatPrice(price, currency)}</span>
-            {onSale && (
+            {fromPrice && <span className="text-xs text-muted-foreground">يبدأ من</span>}
+            <span className="text-navy">
+              {formatPrice(fromPrice ? range.min : price, currency)}
+            </span>
+            {onSale && !fromPrice && (
               <span className="text-xs text-muted-foreground line-through">
                 {formatPrice(Number(p.price), currency)}
               </span>
@@ -101,8 +131,8 @@ export function ProductCard({ p, currency }: { p: Product; currency?: string | u
         </div>
 
         {!unavailable &&
-          (needsVariant ? (
-            // Products with finishes/colours need a choice on the product page
+          (hasOptions ? (
+            // Finishes/colours need a choice on the product page
             <Link
               to="/product/$slug"
               params={{ slug: p.slug }}
@@ -115,20 +145,90 @@ export function ProductCard({ p, currency }: { p: Product; currency?: string | u
           ) : (
             <button
               type="button"
-              aria-label={`أضف ${p.name} إلى السلة`}
-              title="أضف إلى السلة"
+              aria-label={
+                quickSizes && !size ? `اختر مقاس ${p.name} أولاً` : `أضف ${p.name} إلى السلة`
+              }
+              title={quickSizes && !size ? "اختر المقاس أولاً" : "أضف إلى السلة"}
               onClick={add}
               className={cn(
                 "flex h-10 w-10 shrink-0 items-center justify-center border transition-colors",
                 added
                   ? "border-gold bg-gold text-ink"
-                  : "hairline text-navy hover:bg-navy hover:text-gold",
+                  : quickSizes && !size
+                    ? "hairline text-navy/40 hover:text-navy"
+                    : "hairline text-navy hover:bg-navy hover:text-gold",
               )}
             >
               {added ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             </button>
           ))}
       </div>
+
+      {/* Sizes: selectable on the card when they're the only choice; listed otherwise */}
+      {hasSizes && !unavailable && (
+        <div className="mt-3">
+          {quickSizes ? (
+            <div
+              className={cn(
+                "flex flex-wrap gap-1.5 rounded-sm transition-shadow",
+                nudge && "ring-2 ring-gold ring-offset-2 ring-offset-background",
+              )}
+              role="radiogroup"
+              aria-label={`مقاس ${p.name}`}
+            >
+              {sizes.slice(0, MAX_CHIPS).map((s) => {
+                const active = size === s.label;
+                return (
+                  <button
+                    key={s.label}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setSize(active ? undefined : s.label)}
+                    title={formatPrice(s.price ?? effectivePrice(p), currency)}
+                    className={cn(
+                      "border px-2.5 py-1 text-xs transition-colors",
+                      active
+                        ? "border-navy bg-navy text-cream"
+                        : "border-navy/15 text-navy hover:border-gold",
+                    )}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
+              {sizes.length > MAX_CHIPS && (
+                <Link
+                  to="/product/$slug"
+                  params={{ slug: p.slug }}
+                  className="border border-dashed border-navy/20 px-2.5 py-1 text-xs text-muted-foreground hover:border-gold hover:text-navy"
+                  aria-label={`كل مقاسات ${p.name}`}
+                >
+                  +{sizes.length - MAX_CHIPS}
+                </Link>
+              )}
+            </div>
+          ) : (
+            <p className="truncate text-xs text-muted-foreground">
+              المقاسات: {sizes.map((s) => s.label).join(" · ")}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Direct single-product order: records the order, then opens WhatsApp */}
+      {!unavailable && (
+        <>
+          <button
+            type="button"
+            onClick={() => setQuickOpen(true)}
+            className="mt-3 flex h-10 w-full items-center justify-center gap-2 border border-gold/60 text-sm text-navy transition-colors hover:border-gold hover:bg-gold hover:text-ink"
+          >
+            <WhatsappIcon className="h-4 w-4" /> اطلب الآن عبر واتساب
+          </button>
+          <QuickOrderDialog p={p} open={quickOpen} onOpenChange={setQuickOpen} initialSize={size} />
+        </>
+      )}
     </article>
   );
 }

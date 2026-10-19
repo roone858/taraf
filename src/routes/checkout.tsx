@@ -2,28 +2,23 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { settingsQuery } from "@/lib/data";
 import { useCart, type CartItem } from "@/lib/cart";
-import { effectivePrice, formatPrice } from "@/lib/format";
+import { formatPrice } from "@/lib/format";
+import { productSizes, unitPrice } from "@/lib/sizes";
 import { orderErrorMessage } from "@/lib/orders";
+import { customerSchema, type CustomerForm } from "@/lib/customer";
 import { buildOrderMessage, buildWhatsappUrl, computeTotals, normalizeWhatsappNumber } from "@/lib/whatsapp";
 import { CartLines } from "@/components/CartDrawer";
 import { WhatsappIcon } from "@/components/BrandIcons";
 import { Button } from "@/components/ui/button";
 
-const schema = z.object({
-  name: z.string().trim().min(3, "يرجى إدخال الاسم بالكامل").max(100),
-  phone: z.string().trim().regex(/^\+?[0-9\s-]{8,20}$/, "رقم الهاتف غير صحيح"),
-  city: z.string().trim().min(2, "يرجى إدخال المدينة أو المحافظة").max(60),
-  address: z.string().trim().min(8, "يرجى إدخال عنوان تفصيلي").max(300),
-  notes: z.string().max(500).optional(),
-});
-type Form = z.infer<typeof schema>;
+const schema = customerSchema;
+type Form = CustomerForm;
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -54,14 +49,20 @@ function Checkout() {
     setBusy(true);
     try {
       const ids = [...new Set(cart.items.map((i) => i.productId))];
-      const { data, error } = await supabase.from("products").select("id,name,price,sale_price,stock,availability,is_published").in("id", ids);
+      const { data, error } = await supabase.from("products").select("id,name,price,sale_price,stock,availability,is_published,sizes").in("id", ids);
       if (error) throw error;
       const fresh: CartItem[] = [];
       const problems: string[] = [];
       for (const i of cart.items) {
         const p = data.find((d) => d.id === i.productId);
         if (!p || p.availability === "unavailable") { problems.push(`${i.name} لم يعد متاحاً`); continue; }
-        const unit = effectivePrice({ price: Number(p.price), sale_price: p.sale_price == null ? null : Number(p.sale_price) });
+        // Sized products need a size that still exists (e.g. carts saved before sizes were added)
+        const sizes = productSizes(p);
+        if (sizes.length > 0 && !sizes.some((x) => x.label === i.size)) {
+          problems.push(`اختر مقاس ${i.name} من صفحة المنتج`);
+          continue;
+        }
+        const unit = unitPrice({ price: Number(p.price), sale_price: p.sale_price == null ? null : Number(p.sale_price), sizes: p.sizes }, i.size);
         if (p.availability === "in_stock" && i.quantity > p.stock) {
           if (p.stock <= 0) { problems.push(`${i.name} نفد من المخزون`); continue; }
           problems.push(`تم تعديل كمية ${i.name} إلى ${p.stock}`);
@@ -79,7 +80,13 @@ function Checkout() {
       // Record the order; prices and totals are recomputed server-side in place_order()
       const { data: number, error: orderError } = await supabase.rpc("place_order", {
         _customer: { name: f.name, phone: f.phone, city: f.city, address: f.address, notes: f.notes ?? "" },
-        _items: fresh.map((i) => ({ product_id: i.productId, quantity: i.quantity, variant: i.variant ?? null })),
+        // The server prepends the size to the stored variant, so send finish/colour separately
+        _items: fresh.map((i) => ({
+          product_id: i.productId,
+          quantity: i.quantity,
+          size: i.size ?? null,
+          variant: (i.size ? i.options : (i.options ?? i.variant)) ?? null,
+        })),
       });
       if (orderError || !number) {
         toast.error(orderErrorMessage(orderError?.message));

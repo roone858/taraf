@@ -329,7 +329,7 @@ function OrderDialog({
       <Dialog open onOpenChange={(o) => !o && !pending && onClose()}>
         <DialogContent
           dir="rtl"
-          className="flex max-h-[92vh] flex-col gap-0 bg-ivory p-0 sm:max-w-2xl"
+          className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 bg-ivory p-0 sm:max-w-2xl"
         >
           <DialogHeader className="border-b px-6 py-4 text-start">
             <DialogTitle className="flex flex-wrap items-center gap-3 font-display text-2xl text-navy">

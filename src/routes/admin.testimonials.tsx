@@ -239,7 +239,7 @@ function Testimonials() {
       <Dialog open={!!edit} onOpenChange={(o) => !o && !busy && setEdit(null)}>
         <DialogContent
           dir="rtl"
-          className="flex max-h-[92vh] flex-col gap-0 bg-ivory p-0 sm:max-w-lg"
+          className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 bg-ivory p-0 sm:max-w-lg"
         >
           <DialogHeader className="border-b px-6 py-4 text-start">
             <DialogTitle className="font-display text-2xl text-navy">

@@ -83,6 +83,22 @@
   h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0; line-height: 1.25; }
 }
 
+/* Mobile fixes — deliberately unlayered so they beat utility classes like `text-sm`.
+   iOS Safari zooms into any focused field under 16px and doesn't zoom back out, leaving the page
+   wider than the screen (worst inside fixed dialogs, which can't be panned). */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+/* Guard against stray horizontal overflow; `clip` (unlike `hidden`) keeps sticky headers working. */
+html,
+body {
+  overflow-x: clip;
+}
+
 @utility font-display { font-family: var(--font-display); }
 @utility bg-silk { background: var(--silk); }
 @utility bg-veil { background: var(--veil); }

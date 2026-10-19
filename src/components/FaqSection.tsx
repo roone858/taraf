@@ -10,7 +10,10 @@ import {
 import { WhatsappIcon } from "./BrandIcons";
 
 /** Shop-page FAQ, managed from Admin → الأسئلة الشائعة. Renders nothing until at least one is published. */
-export function FaqSection() {
+export function FaqSection({
+  eyebrow = "مساعدة",
+  title = "الأسئلة الشائعة",
+}: { eyebrow?: string; title?: string } = {}) {
   const { data: faqs } = useQuery(faqsQuery);
   const { data: s } = useQuery(settingsQuery);
   if (!faqs?.length) return null;
@@ -28,12 +31,15 @@ export function FaqSection() {
   };
 
   return (
-    <section className="border-b hairline bg-silk py-20 text-cream md:py-24" aria-labelledby="faq-title">
+    <section
+      className="border-b hairline bg-silk py-20 text-cream md:py-24"
+      aria-labelledby="faq-title"
+    >
       <div className="mx-auto grid max-w-7xl gap-10 px-5 lg:grid-cols-[1fr_2fr] lg:gap-16 lg:px-10">
         <div className="lg:sticky lg:top-40 lg:self-start">
-          <p className="eyebrow">مساعدة</p>
+          {eyebrow && <p className="eyebrow">{eyebrow}</p>}
           <h2 id="faq-title" className="mt-3 font-display text-4xl text-cream md:text-5xl">
-            الأسئلة الشائعة
+            {title}
           </h2>
           <div className="my-6 h-px w-16 bg-gold/60" />
           <p className="text-sm leading-loose text-cream/70">

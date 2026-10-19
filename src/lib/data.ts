@@ -73,17 +73,39 @@ export const featuredQuery = queryOptions({
   },
 });
 
-export const newestQuery = queryOptions({
-  queryKey: ["products", "newest"],
+export const bestsellersQuery = queryOptions({
+  queryKey: ["products", "bestsellers"],
   queryFn: async () => {
     const { data, error } = await supabase
       .from("products")
       .select("*")
       .eq("is_published", true)
-      .order("created_at", { ascending: false })
-      .limit(4);
+      .eq("is_bestseller", true)
+      .order("updated_at", { ascending: false })
+      .limit(8);
     if (error) throw error;
     return data;
+  },
+});
+
+/** Published products with a sale price below the regular price, biggest discount first. */
+export const onSaleQuery = queryOptions({
+  queryKey: ["products", "on-sale"],
+  queryFn: async () => {
+    // PostgREST can't compare two columns, so fetch sale-priced rows and finish the filter here
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("is_published", true)
+      .not("sale_price", "is", null)
+      .neq("availability", "unavailable")
+      .limit(60);
+    if (error) throw error;
+    const discount = (p: (typeof data)[number]) => 1 - Number(p.sale_price) / Number(p.price);
+    return data
+      .filter((p) => Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price))
+      .sort((a, b) => discount(b) - discount(a))
+      .slice(0, 8);
   },
 });
 

@@ -18,6 +18,8 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CartDrawer } from "@/components/CartDrawer";
 import { WhatsappFab } from "@/components/WhatsappFab";
+import { MobileBar } from "@/components/MobileBar";
+import { SiteMenuProvider } from "@/lib/site-menu";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -116,11 +118,14 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <CartProvider>
-        {!isAdmin && <SiteHeader />}
-        <Outlet />
-        {!isAdmin && <SiteFooter />}
-        {!isAdmin && <CartDrawer />}
-        {!isAdmin && <WhatsappFab />}
+        <SiteMenuProvider>
+          {!isAdmin && <SiteHeader />}
+          <Outlet />
+          {!isAdmin && <SiteFooter />}
+          {!isAdmin && <CartDrawer />}
+          {!isAdmin && <WhatsappFab />}
+          {!isAdmin && <MobileBar />}
+        </SiteMenuProvider>
         <Toaster position="top-center" />
         {/* Vercel Web Analytics; admin pages are not counted as site visits */}
         <Analytics beforeSend={(e) => (new URL(e.url).pathname.startsWith("/admin") ? null : e)} />

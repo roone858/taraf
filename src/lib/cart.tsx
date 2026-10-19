@@ -5,7 +5,12 @@ export type CartItem = {
   slug: string;
   name: string;
   image?: string | undefined;
+  /** Display text for the chosen options, incl. size — also what makes two cart lines distinct. */
   variant?: string | undefined;
+  /** Chosen size label (sent to place_order, which prices it). */
+  size?: string | undefined;
+  /** Finish / colour part of the variant, without the size. */
+  options?: string | undefined;
   unitPrice: number;
   quantity: number;
   maxQty?: number | undefined;

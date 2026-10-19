@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { productQuery, settingsQuery } from "@/lib/data";
 import { availabilityLabel, effectivePrice, formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart";
+import { priceRange, productSizes, unitPrice } from "@/lib/sizes";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/ProductCard";
 
@@ -31,6 +32,7 @@ function ProductPage() {
   const [qty, setQty] = useState(1);
   const [finish, setFinish] = useState<string>();
   const [color, setColor] = useState<string>();
+  const [size, setSize] = useState<string>();
 
   const { data: related } = useQuery({
     queryKey: ["related", p?.id],
@@ -50,8 +52,14 @@ function ProductPage() {
       </main>
     );
 
-  const price = effectivePrice(p);
-  const onSale = p.sale_price != null && Number(p.sale_price) < Number(p.price);
+  const sizes = productSizes(p);
+  const needSize = sizes.length > 0;
+  const range = priceRange(p);
+  const price = unitPrice(p, size);
+  const selectedSize = sizes.find((x) => x.label === size);
+  // The struck-through original price only makes sense while the product's own (sale) price applies
+  const onSale = p.sale_price != null && Number(p.sale_price) < Number(p.price) && !selectedSize?.price;
+  const showFrom = needSize && !size && range.min !== range.max;
   const unavailable = p.availability === "unavailable" || (p.availability === "in_stock" && p.stock <= 0);
   const max = p.availability === "in_stock" ? p.stock : 99;
   const dims = [
@@ -62,13 +70,29 @@ function ProductPage() {
   const needFinish = p.finishes.length > 0;
   const needColor = p.colors.length > 0;
 
+  const missing = [needSize && !size && "المقاس", needFinish && !finish && "التشطيب", needColor && !color && "اللون"].filter(
+    Boolean,
+  ) as string[];
+
   const add = () => {
-    if ((needFinish && !finish) || (needColor && !color)) {
-      toast.error("يرجى اختيار التشطيب واللون أولاً");
+    if (missing.length) {
+      toast.error(`يرجى اختيار ${missing.join(" و")} أولاً`);
       return;
     }
-    const variant = [finish, color].filter(Boolean).join(" / ") || undefined;
-    cart.add({ productId: p.id, slug: p.slug, name: p.name, image: p.images[0], variant, unitPrice: price, quantity: qty, maxQty: p.availability === "in_stock" ? p.stock : undefined });
+    const options = [finish, color].filter(Boolean).join(" / ") || undefined;
+    const variant = [size, options].filter(Boolean).join(" / ") || undefined;
+    cart.add({
+      productId: p.id,
+      slug: p.slug,
+      name: p.name,
+      image: p.images[0],
+      variant,
+      size,
+      options,
+      unitPrice: price,
+      quantity: qty,
+      maxQty: p.availability === "in_stock" ? p.stock : undefined,
+    });
     cart.setOpen(true);
   };
 
@@ -104,9 +128,12 @@ function ProductPage() {
             <Link to="/shop" search={{ cat: p.categories.slug }} className="eyebrow">{p.categories.name}</Link>
           )}
           <h1 className="mt-4 font-display text-4xl text-navy md:text-5xl">{p.name}</h1>
-          <div className="mt-6 flex items-baseline gap-4">
-            <span className="text-2xl text-navy">{formatPrice(price, s?.currency)}</span>
-            {onSale && <span className="text-muted-foreground line-through">{formatPrice(Number(p.price), s?.currency)}</span>}
+          <div className="mt-6 flex items-baseline gap-4" aria-live="polite">
+            {showFrom && <span className="text-sm text-muted-foreground">يبدأ من</span>}
+            <span className="text-2xl text-navy">{formatPrice(showFrom ? range.min : price, s?.currency)}</span>
+            {onSale && !showFrom && (
+              <span className="text-muted-foreground line-through">{formatPrice(Number(p.price), s?.currency)}</span>
+            )}
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
             {unavailable ? "غير متوفر حالياً" : availabilityLabel[p.availability]}
@@ -115,6 +142,41 @@ function ProductPage() {
           <div className="my-8 h-px bg-border" />
           {p.description && <p className="leading-loose text-foreground/80">{p.description}</p>}
 
+          {needSize && (
+            <fieldset className="mt-8">
+              <legend className="mb-3 flex w-full items-baseline justify-between text-sm">
+                <span>
+                  المقاس <span className="text-destructive">*</span>
+                </span>
+                {selectedSize && <span className="text-xs text-muted-foreground">المختار: {selectedSize.label}</span>}
+              </legend>
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="المقاس">
+                {sizes.map((o) => {
+                  const active = size === o.label;
+                  const optPrice = o.price ?? effectivePrice(p);
+                  return (
+                    <button
+                      key={o.label}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setSize(o.label)}
+                      className={`flex min-w-28 flex-col items-start border px-4 py-2.5 text-start transition-colors ${
+                        active ? "border-navy bg-navy text-cream" : "hairline hover:border-gold"
+                      }`}
+                    >
+                      <span className="text-sm">{o.label}</span>
+                      {range.min !== range.max && (
+                        <span className={`mt-0.5 text-xs ${active ? "text-gold" : "text-muted-foreground"}`}>
+                          {formatPrice(optPrice, s?.currency)}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          )}
           {needFinish && (
             <div className="mt-8">
               <p className="mb-3 text-sm">التشطيب</p>
@@ -135,7 +197,9 @@ function ProductPage() {
                 <span className="w-10 text-center">{qty}</span>
                 <button aria-label="إنقاص" className="p-3" onClick={() => setQty((q) => Math.max(1, q - 1))}><Minus className="h-4 w-4" /></button>
               </div>
-              <Button onClick={add} className="h-12 flex-1">أضف إلى السلة</Button>
+              <Button onClick={add} className="h-12 flex-1" aria-disabled={missing.length > 0}>
+                {missing.length ? `اختر ${missing[0]}` : "أضف إلى السلة"}
+              </Button>
             </div>
           )}
 
