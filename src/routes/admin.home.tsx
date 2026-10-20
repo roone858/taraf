@@ -5,8 +5,6 @@ import { toast } from "sonner";
 import {
   BadgePercent,
   BookOpen,
-  ChevronDown,
-  ChevronUp,
   ExternalLink,
   Eye,
   EyeOff,
@@ -14,7 +12,6 @@ import {
   FolderTree,
   HelpCircle,
   Images,
-  Loader2,
   MessageSquareQuote,
   RotateCcw,
   Star,
@@ -43,7 +40,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { SingleImageUpload } from "@/components/SingleImageUpload";
 import { ImageUploader } from "@/components/ImageUploader";
-import { Field, inp } from "./admin.categories";
+import { Field, FormCard, PageHeader, ReorderButtons, SaveBar, inp } from "@/components/admin/kit";
 
 export const Route = createFileRoute("/admin/home")({ component: HomeEditor });
 
@@ -111,10 +108,10 @@ function HomeEditor() {
 
   if (!d || !initial) {
     return (
-      <div className="max-w-4xl space-y-4">
-        <div className="h-10 w-56 animate-pulse bg-ivory" />
+      <div className="max-w-4xl space-y-4" aria-busy="true" aria-label="جارٍ التحميل">
+        <div className="h-10 w-56 animate-pulse rounded-lg bg-ivory" />
         {[0, 1, 2].map((i) => (
-          <div key={i} className="h-40 animate-pulse rounded-2xl bg-ivory" />
+          <div key={i} className="h-40 animate-pulse rounded-xl bg-ivory" />
         ))}
       </div>
     );
@@ -180,19 +177,17 @@ function HomeEditor() {
 
   return (
     <div className="max-w-4xl pb-28">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-4xl text-navy">الصفحة الرئيسية</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            الواجهة، ترتيب الأقسام وإظهارها، وعناوينها. تظهر التغييرات للزوار بعد الحفظ.
-          </p>
-        </div>
-        <Button asChild variant="outline" className="gap-2 rounded-full">
-          <a href="/" target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="h-4 w-4" /> عرض الصفحة
-          </a>
-        </Button>
-      </div>
+      <PageHeader
+        title="الصفحة الرئيسية"
+        meta="الواجهة، ترتيب الأقسام وإظهارها، وعناوينها. تظهر التغييرات للزوار بعد الحفظ."
+        actions={
+          <Button asChild variant="outline" className="h-10 gap-2">
+            <a href="/" target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4" /> عرض الصفحة
+            </a>
+          </Button>
+        }
+      />
 
       {/* Hero */}
       <Card title="الواجهة" description="أول ما يراه الزائر عند فتح المتجر.">
@@ -284,26 +279,12 @@ function HomeEditor() {
                 )}
               >
                 <div className="flex items-center gap-3 p-3">
-                  <div className="flex shrink-0 flex-col">
-                    <button
-                      type="button"
-                      onClick={() => move(i, -1)}
-                      disabled={i === 0}
-                      aria-label={`تحريك ${meta.name} لأعلى`}
-                      className="text-muted-foreground hover:text-navy disabled:opacity-25"
-                    >
-                      <ChevronUp className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => move(i, 1)}
-                      disabled={i === d.config.sections.length - 1}
-                      aria-label={`تحريك ${meta.name} لأسفل`}
-                      className="text-muted-foreground hover:text-navy disabled:opacity-25"
-                    >
-                      <ChevronDown className="h-4 w-4" />
-                    </button>
-                  </div>
+                  <ReorderButtons
+                    name={meta.name}
+                    first={i === 0}
+                    last={i === d.config.sections.length - 1}
+                    onMove={(dir) => move(i, dir)}
+                  />
                   <button
                     type="button"
                     onClick={() => setOpen(expanded ? null : sec.id)}
@@ -430,7 +411,10 @@ function HomeEditor() {
 
                     <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                       {manage ? (
-                        <Link to={manage.to} className="text-xs text-gold hover:text-navy">
+                        <Link
+                          to={manage.to}
+                          className="inline-flex h-8 items-center rounded-md px-2 text-xs text-navy underline-offset-4 transition-colors hover:bg-gold/15"
+                        >
                           {manage.label} ←
                         </Link>
                       ) : (
@@ -455,30 +439,13 @@ function HomeEditor() {
         </ul>
       </Card>
 
-      {/* Save bar */}
-      <div
-        className={cn(
-          "fixed inset-x-0 bottom-0 z-20 border-t hairline bg-navy/95 backdrop-blur transition-transform duration-300 md:start-64",
-          dirty || saving ? "translate-y-0" : "translate-y-full",
-        )}
-      >
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] md:px-10">
-          <span className="text-sm text-cream/80">لديك تغييرات غير محفوظة</span>
-          <div className="flex gap-2">
-            <Button
-              variant="ghostGold"
-              onClick={() => setD(initial)}
-              disabled={saving}
-              className="gap-2"
-            >
-              <RotateCcw className="h-4 w-4" /> تراجع
-            </Button>
-            <Button variant="gold" onClick={save} disabled={saving} className="min-w-28 gap-2">
-              {saving && <Loader2 className="h-4 w-4 animate-spin" />} حفظ
-            </Button>
-          </div>
-        </div>
-      </div>
+      <SaveBar
+        visible={dirty}
+        saving={saving}
+        onSave={save}
+        onReset={() => setD(initial)}
+        maxWidth="max-w-4xl"
+      />
     </div>
   );
 }
@@ -493,10 +460,8 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-8 rounded-2xl border border-navy/[0.08] bg-ivory p-5 shadow-sm md:p-6">
-      <h2 className="text-lg text-navy">{title}</h2>
-      <p className="mt-1 mb-5 text-sm text-muted-foreground">{description}</p>
+    <FormCard title={title} description={description} className="mt-6">
       {children}
-    </section>
+    </FormCard>
   );
 }

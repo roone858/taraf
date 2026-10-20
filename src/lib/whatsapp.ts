@@ -34,7 +34,8 @@ export function buildOrderMessage(
   orderNumber?: string,
 ) {
   const t = computeTotals(lines, deliveryFee);
-  const f = (n: number) => formatPrice(n, currency);
+  // Plain-text label: the riyal sign may not render on the recipient's phone
+  const f = (n: number) => formatPrice(n, currency, { plain: true });
   const items = lines
     .map(
       (l, i) =>
@@ -79,7 +80,7 @@ export type InvoiceMessageInput = {
 
 /** Plain-text invoice for sending to the customer over WhatsApp (wa.me links can't carry file attachments). */
 export function buildInvoiceMessage(o: InvoiceMessageInput) {
-  const f = (n: number) => formatPrice(Number(n), o.currency);
+  const f = (n: number) => formatPrice(Number(n), o.currency, { plain: true });
   const date = new Intl.DateTimeFormat("ar-EG", { year: "numeric", month: "long", day: "numeric" }).format(
     new Date(o.createdAt),
   );

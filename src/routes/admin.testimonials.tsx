@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, ChevronUp, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { Loader2, MessageSquarePlus, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Testimonial } from "@/lib/data";
 import { cn } from "@/lib/utils";
@@ -20,13 +20,25 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { StarInput, Stars } from "@/components/StarRating";
-import { Field, inp } from "./admin.categories";
+import {
+  EmptyState,
+  ErrorState,
+  Field,
+  IconButton,
+  ListSkeleton,
+  PageHeader,
+  ReorderButtons,
+  Surface,
+  adminNum,
+  inp,
+} from "@/components/admin/kit";
 
 export const Route = createFileRoute("/admin/testimonials")({ component: Testimonials });
 
 type Draft = Partial<Testimonial>;
 const KEY = ["admin", "testimonials"] as const;
 const BODY_MAX = 600;
+const dec = new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 1 });
 
 function Testimonials() {
   const qc = useQueryClient();
@@ -88,6 +100,7 @@ function Testimonials() {
     const { error } = await supabase.from("testimonials").delete().eq("id", toDelete.id);
     if (error) toast.error(error.message);
     else toast.success("تم حذف التقييم");
+    if (edit?.id === toDelete.id) setEdit(null);
     setToDelete(null);
     refresh();
   };
@@ -127,131 +140,130 @@ function Testimonials() {
   };
 
   const set = (patch: Draft) => setEdit((d) => ({ ...d, ...patch }));
+  const newOne = () => setEdit({ rating: 5, is_published: true });
+  const editing = edit?.id ? rows.find((t) => t.id === edit.id) : undefined;
 
   return (
     <div className="max-w-5xl">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-4xl text-navy">آراء العملاء</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {published.length} ظاهر في الصفحة الرئيسية
-            {published.length > 0 && (
-              <>
-                {" "}
-                · متوسط التقييم{" "}
-                {new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 1 }).format(avg)} من ٥
-              </>
-            )}{" "}
-            · يعرض السلايدر أول ١٢ تقييماً منشوراً بالترتيب
-          </p>
-        </div>
-        <Button onClick={() => setEdit({ rating: 5, is_published: true })} className="gap-2">
-          <Plus className="h-4 w-4" /> إضافة تقييم
-        </Button>
-      </div>
+      <PageHeader
+        title="آراء العملاء"
+        meta={
+          isLoading ? (
+            "جارٍ تحميل الآراء…"
+          ) : (
+            <>
+              <span className="text-navy tabular-nums">{adminNum.format(published.length)}</span>{" "}
+              ظاهر في الصفحة الرئيسية
+              {published.length > 0 && (
+                <>
+                  {" · "}متوسط التقييم{" "}
+                  <span className="text-navy tabular-nums">{dec.format(avg)}</span> من ٥
+                </>
+              )}
+              {" · "}يعرض السلايدر أول ١٢ رأياً منشوراً بالترتيب
+            </>
+          )
+        }
+        actions={
+          <Button onClick={newOne} className="h-10 gap-2">
+            <Plus className="h-4 w-4" /> إضافة رأي
+          </Button>
+        }
+      />
 
-      <div className="mt-6 space-y-3">
-        {isLoading &&
-          Array.from({ length: 3 }, (_, i) => (
-            <div key={i} className="h-28 animate-pulse bg-ivory" />
-          ))}
-        {isError && (
-          <div className="bg-ivory p-10 text-center text-sm text-muted-foreground">
-            تعذر تحميل التقييمات.{" "}
-            <button onClick={() => refetch()} className="text-navy underline hover:text-gold">
-              إعادة المحاولة
-            </button>
-          </div>
-        )}
-        {!isLoading && !isError && rows.length === 0 && (
-          <div className="bg-ivory p-10 text-center text-sm text-muted-foreground">
-            لا توجد تقييمات بعد. أضف آراء عملائك الحقيقية لتظهر في قسم «آراء عملائنا» بالصفحة
-            الرئيسية.
-          </div>
-        )}
-        {rows.map((t, i) => (
-          <article
-            key={t.id}
-            className={cn(
-              "flex gap-4 bg-ivory p-4 transition-opacity sm:p-5",
-              !t.is_published && "opacity-60",
-            )}
-          >
-            <div className="flex shrink-0 flex-col items-center justify-center">
-              <button
-                onClick={() => move(i, -1)}
-                disabled={i === 0 || reordering}
-                aria-label="تحريك لأعلى"
-                className="flex h-6 w-6 items-center justify-center text-muted-foreground hover:text-navy disabled:opacity-25"
+      <Surface className="mt-8">
+        {isLoading ? (
+          <ListSkeleton rows={3} />
+        ) : isError ? (
+          <ErrorState what="الآراء" onRetry={() => refetch()} />
+        ) : rows.length === 0 ? (
+          <EmptyState
+            icon={MessageSquarePlus}
+            title="لا توجد آراء بعد"
+            text="أضف آراء عملائك الحقيقية لتظهر في قسم «آراء عملائنا» بالصفحة الرئيسية."
+            action={
+              <Button onClick={newOne} className="h-10 gap-2">
+                <Plus className="h-4 w-4" /> إضافة رأي
+              </Button>
+            }
+          />
+        ) : (
+          <ul className="divide-y divide-navy/[0.07]">
+            {rows.map((t, i) => (
+              <li
+                key={t.id}
+                className="flex items-start gap-3 px-3 py-4 transition-colors duration-150 hover:bg-cream/60 sm:gap-4 sm:px-4"
               >
-                <ChevronUp className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => move(i, 1)}
-                disabled={i === rows.length - 1 || reordering}
-                aria-label="تحريك لأسفل"
-                className="flex h-6 w-6 items-center justify-center text-muted-foreground hover:text-navy disabled:opacity-25"
-              >
-                <ChevronDown className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <Stars value={t.rating} />
-                <span className="text-sm text-navy">{t.customer_name}</span>
-                {t.city && <span className="text-xs text-muted-foreground">{t.city}</span>}
-                {!t.is_published && (
-                  <span className="bg-muted px-2 py-0.5 text-xs text-muted-foreground">مخفي</span>
-                )}
-              </div>
-              <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-navy/80">{t.body}</p>
-            </div>
-            <div className="flex shrink-0 flex-col items-end justify-between gap-3">
-              <Switch
-                checked={t.is_published}
-                onCheckedChange={() => togglePublished(t)}
-                aria-label="ظاهر في المتجر"
-              />
-              <div className="flex gap-1">
+                <ReorderButtons
+                  name={t.customer_name}
+                  first={i === 0}
+                  last={i === rows.length - 1}
+                  disabled={reordering}
+                  onMove={(dir) => move(i, dir)}
+                />
                 <button
+                  type="button"
                   onClick={() => setEdit(t)}
-                  aria-label="تعديل"
-                  title="تعديل"
-                  className="flex h-8 w-8 items-center justify-center text-muted-foreground hover:bg-gold/15 hover:text-navy"
+                  className={cn(
+                    "min-w-0 flex-1 rounded-lg text-start focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold",
+                    !t.is_published && "opacity-60",
+                  )}
+                  aria-label={`تعديل رأي ${t.customer_name}`}
                 >
-                  <Pencil className="h-4 w-4" />
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <Stars value={t.rating} />
+                    <span className="text-sm text-navy">{t.customer_name}</span>
+                    {t.city && <span className="text-xs text-muted-foreground">{t.city}</span>}
+                  </span>
+                  <span className="mt-2 line-clamp-2 block text-sm leading-relaxed text-navy/80">
+                    {t.body}
+                  </span>
                 </button>
-                <button
-                  onClick={() => setToDelete(t)}
-                  aria-label="حذف"
-                  title="حذف"
-                  className="flex h-8 w-8 items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
+                <div className="flex shrink-0 flex-col items-center gap-1 pt-0.5">
+                  <Switch
+                    checked={t.is_published}
+                    onCheckedChange={() => togglePublished(t)}
+                    aria-label={`إظهار رأي ${t.customer_name}`}
+                  />
+                  <span className="text-[0.65rem] text-muted-foreground">
+                    {t.is_published ? "ظاهر" : "مخفي"}
+                  </span>
+                </div>
+                <div className="hidden shrink-0 gap-0.5 sm:flex">
+                  <IconButton label={`تعديل رأي ${t.customer_name}`} onClick={() => setEdit(t)}>
+                    <Pencil className="h-4 w-4" />
+                  </IconButton>
+                  <IconButton
+                    label={`حذف رأي ${t.customer_name}`}
+                    danger
+                    onClick={() => setToDelete(t)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </IconButton>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Surface>
 
       {/* Editor */}
       <Dialog open={!!edit} onOpenChange={(o) => !o && !busy && setEdit(null)}>
         <DialogContent
           dir="rtl"
-          className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 bg-ivory p-0 sm:max-w-lg"
+          className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 bg-ivory p-0 sm:max-w-lg sm:rounded-xl"
         >
-          <DialogHeader className="border-b px-6 py-4 text-start">
+          <DialogHeader className="border-b border-navy/10 px-6 py-5 text-start">
             <DialogTitle className="font-display text-2xl text-navy">
-              {edit?.id ? "تعديل التقييم" : "تقييم جديد"}
+              {edit?.id ? "تعديل الرأي" : "رأي جديد"}
             </DialogTitle>
           </DialogHeader>
           {edit && (
             <>
-              <div className="flex-1 space-y-4 overflow-y-auto px-6 py-6 text-sm">
+              <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6 text-sm">
                 <div>
-                  <span className="text-muted-foreground">التقييم</span>
-                  <div className="mt-1">
+                  <span className="text-sm text-muted-foreground">التقييم</span>
+                  <div className="mt-1.5">
                     <StarInput value={edit.rating ?? 5} onChange={(rating) => set({ rating })} />
                   </div>
                 </div>
@@ -275,34 +287,53 @@ function Testimonials() {
                     />
                   </Field>
                 </div>
-                <Field label="نص التقييم *">
+                <Field label="نص الرأي *">
                   <textarea
                     rows={5}
-                    className={`${inp} h-auto py-2`}
+                    className={cn(inp, "h-auto py-2.5")}
                     value={edit.body ?? ""}
                     onChange={(e) => set({ body: e.target.value })}
                     maxLength={BODY_MAX}
                   />
-                  <span className="mt-1 block text-end text-xs text-muted-foreground">
-                    {(edit.body ?? "").length}/{BODY_MAX}
+                  <span className="mt-1 block text-end text-xs text-muted-foreground tabular-nums">
+                    {adminNum.format((edit.body ?? "").length)}/{adminNum.format(BODY_MAX)}
                   </span>
                 </Field>
               </div>
-              <div className="flex flex-wrap items-center gap-3 border-t px-6 py-4 text-sm">
-                <label className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-3 border-t border-navy/10 px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] text-sm">
+                <label className="flex min-h-10 cursor-pointer items-center gap-2 text-navy">
                   <Switch
                     checked={edit.is_published ?? true}
                     onCheckedChange={(v) => set({ is_published: v })}
-                  />{" "}
+                  />
                   ظاهر في المتجر
                 </label>
-                <div className="ms-auto flex gap-2">
-                  <Button variant="outline" onClick={() => setEdit(null)} disabled={busy}>
+                {editing && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setToDelete(editing)}
+                    className="h-10 gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/5 sm:hidden"
+                  >
+                    <Trash2 className="h-4 w-4" /> حذف
+                  </Button>
+                )}
+                <div className="flex w-full gap-2 sm:ms-auto sm:w-auto">
+                  <Button
+                    variant="outline"
+                    onClick={() => setEdit(null)}
+                    disabled={busy}
+                    className="h-10 flex-1 sm:flex-none"
+                  >
                     إلغاء
                   </Button>
-                  <Button onClick={save} disabled={busy} className="min-w-28 gap-2">
+                  <Button
+                    onClick={save}
+                    disabled={busy}
+                    className="h-10 min-w-28 flex-1 gap-2 sm:flex-none"
+                  >
                     {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {edit.id ? "حفظ التعديلات" : "إضافة التقييم"}
+                    {edit.id ? "حفظ التعديلات" : "إضافة الرأي"}
                   </Button>
                 </div>
               </div>
@@ -312,21 +343,20 @@ function Testimonials() {
       </Dialog>
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-        <AlertDialogContent dir="rtl" className="bg-ivory">
+        <AlertDialogContent dir="rtl" className="bg-ivory sm:rounded-xl">
           <AlertDialogHeader className="text-start">
-            <AlertDialogTitle>حذف التقييم؟</AlertDialogTitle>
+            <AlertDialogTitle>حذف رأي «{toDelete?.customer_name}»؟</AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم حذف تقييم «{toDelete?.customer_name}» نهائياً. لإخفائه مؤقتاً أوقف «ظاهر في
-              المتجر» بدلاً من الحذف.
+              يُحذف الرأي نهائياً. لإخفائه مؤقتاً أوقف «ظاهر في المتجر» بدلاً من الحذف.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogCancel>تراجع</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              حذف
+              حذف الرأي
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -108,7 +108,7 @@ export function SiteTrafficPanel({ className }: { className?: string }) {
     <div className={cn("space-y-6", className)}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div
-          className="inline-flex rounded-full border border-navy/10 bg-ivory p-1 text-sm shadow-sm"
+          className="inline-flex rounded-full border border-navy/10 bg-ivory p-1 text-sm shadow-[0_1px_2px_oklch(0.19_0.03_260/0.06)]"
           role="group"
           aria-label="الفترة"
         >
@@ -282,7 +282,7 @@ function Kpi({
   note?: string;
 }) {
   return (
-    <div className="group rounded-2xl border border-navy/[0.08] bg-ivory p-5 shadow-sm transition-shadow hover:shadow-md">
+    <div className="group rounded-xl border border-navy/10 bg-ivory p-5 shadow-[0_1px_2px_oklch(0.19_0.03_260/0.06)] transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
         <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gold/15 text-gold transition-colors group-hover:bg-gold group-hover:text-ink">
           <Icon className="h-5 w-5" />
@@ -339,7 +339,7 @@ function DailyTrend({ daily }: { daily: Ok["daily"] }) {
 
   return (
     <section
-      className="rounded-2xl border border-navy/[0.08] bg-ivory p-5 shadow-sm md:p-6"
+      className="rounded-xl border border-navy/10 bg-ivory p-5 shadow-[0_1px_2px_oklch(0.19_0.03_260/0.06)] md:p-6"
       aria-labelledby="trend-title"
     >
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -485,7 +485,7 @@ function Breakdown({
   const max = Math.max(1, ...items.map((i) => i[metric]));
 
   return (
-    <section className="rounded-2xl border border-navy/[0.08] bg-ivory p-5 shadow-sm md:p-6">
+    <section className="rounded-xl border border-navy/10 bg-ivory p-5 shadow-[0_1px_2px_oklch(0.19_0.03_260/0.06)] md:p-6">
       <h3 className="mb-5 flex items-center justify-between gap-3">
         <span className="flex items-center gap-3 text-base text-navy">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold/15 text-gold">
@@ -568,13 +568,13 @@ function Skeleton() {
     <div className="space-y-6" aria-busy="true">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-36 animate-pulse rounded-2xl bg-ivory" />
+          <div key={i} className="h-36 animate-pulse rounded-xl bg-ivory" />
         ))}
       </div>
-      <div className="h-80 animate-pulse rounded-2xl bg-ivory" />
+      <div className="h-80 animate-pulse rounded-xl bg-ivory" />
       <div className="grid gap-4 md:grid-cols-2">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-64 animate-pulse rounded-2xl bg-ivory" />
+          <div key={i} className="h-64 animate-pulse rounded-xl bg-ivory" />
         ))}
       </div>
     </div>
@@ -591,7 +591,7 @@ function ErrorNotice({ code }: { code: number }) {
           ? "هذه الفترة خارج حدود خطة Vercel الحالية. اختر فترة أقصر."
           : "لم تصل بيانات من Vercel الآن. أعد تحميل الصفحة بعد قليل.";
   return (
-    <div className="flex items-start gap-4 rounded-2xl border border-destructive/20 bg-ivory p-6 text-sm">
+    <div className="flex items-start gap-4 rounded-xl border border-destructive/20 bg-ivory p-6 text-sm">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
         <BarChart3 className="h-5 w-5" />
       </span>
@@ -605,7 +605,7 @@ function ErrorNotice({ code }: { code: number }) {
 
 function SetupNotice() {
   return (
-    <div className="rounded-2xl border border-navy/[0.08] bg-ivory p-6 text-sm shadow-sm md:p-8">
+    <div className="rounded-xl border border-navy/10 bg-ivory p-6 text-sm shadow-[0_1px_2px_oklch(0.19_0.03_260/0.06)] md:p-8">
       <div className="flex items-center gap-3">
         <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gold/15 text-gold">
           <BarChart3 className="h-5 w-5" />

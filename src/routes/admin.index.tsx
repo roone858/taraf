@@ -19,6 +19,7 @@ import { effectivePrice, formatPrice, LOW_STOCK } from "@/lib/format";
 import { orderStatusLabel, STOCK_HOLDING } from "@/lib/orders";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { PageHeader, Panel } from "@/components/admin/kit";
 export const Route = createFileRoute("/admin/")({ component: Overview });
 
 const dateFmt = new Intl.DateTimeFormat("ar-EG", { day: "numeric", month: "short" });
@@ -177,67 +178,73 @@ function Overview() {
 
   return (
     <div className="max-w-6xl">
-      {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-4xl text-navy">نظرة عامة</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {new Intl.DateTimeFormat("ar-EG", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            }).format(new Date())}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline" className="gap-2">
-            <a href="/" target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-4 w-4" /> عرض المتجر
-            </a>
-          </Button>
-          <Button asChild className="gap-2">
-            <Link to="/admin/products">
-              <Plus className="h-4 w-4" /> إدارة المنتجات
-            </Link>
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="نظرة عامة"
+        meta={new Intl.DateTimeFormat("ar-EG", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        }).format(new Date())}
+        actions={
+          <>
+            <Button asChild variant="outline" className="h-10 gap-2">
+              <a href="/" target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4" /> عرض المتجر
+              </a>
+            </Button>
+            <Button asChild className="h-10 gap-2">
+              <Link to="/admin/products">
+                <Plus className="h-4 w-4" /> إدارة المنتجات
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats */}
       <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {stats.map((s) => (
-          <Link
-            key={s.label}
-            to={s.to}
-            className={cn(
-              "group border-t-2 bg-ivory p-5 transition-colors hover:bg-cream",
-              "alert" in s && s.alert ? "border-destructive" : "border-gold",
-            )}
-          >
-            <div className="flex items-start justify-between">
-              <p className="text-sm text-muted-foreground">{s.label}</p>
-              <s.Icon
-                className={cn(
-                  "h-5 w-5",
-                  "alert" in s && s.alert ? "text-destructive" : "text-gold",
-                )}
-              />
-            </div>
-            {isLoading ? (
-              <div className="mt-3 h-9 w-16 animate-pulse bg-cream" />
-            ) : (
-              <p
-                className={cn(
-                  "mt-2 font-display text-navy",
-                  typeof s.value === "number" ? "text-4xl" : "text-2xl leading-[2.25rem]",
-                )}
-              >
-                {s.value}
-              </p>
-            )}
-            <p className="mt-1 text-xs text-muted-foreground">{s.sub}</p>
-          </Link>
-        ))}
+        {stats.map((s) => {
+          const alert = "alert" in s && s.alert;
+          return (
+            <Link
+              key={s.label}
+              to={s.to}
+              className={cn(
+                "group rounded-xl border bg-ivory p-4 shadow-[0_1px_2px_oklch(0.19_0.03_260/0.06)] transition-colors duration-150 sm:p-5",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold",
+                alert
+                  ? "border-destructive/30 hover:border-destructive/60"
+                  : "border-navy/10 hover:border-gold/60",
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm text-muted-foreground">{s.label}</p>
+                <span
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                    alert ? "bg-destructive/10 text-destructive" : "bg-gold/15 text-gold",
+                  )}
+                >
+                  <s.Icon className="h-4 w-4" />
+                </span>
+              </div>
+              {isLoading ? (
+                <div className="mt-3 h-9 w-16 animate-pulse rounded bg-navy/[0.06]" />
+              ) : (
+                <p
+                  className={cn(
+                    "mt-2 font-display leading-tight tabular-nums",
+                    alert ? "text-destructive" : "text-navy",
+                    typeof s.value === "number" ? "text-3xl sm:text-4xl" : "text-xl sm:text-2xl",
+                  )}
+                >
+                  {s.value}
+                </p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">{s.sub}</p>
+            </Link>
+          );
+        })}
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-flow-dense lg:grid-cols-3">
@@ -453,28 +460,6 @@ function Overview() {
   );
 }
 
-function Panel({
-  title,
-  action,
-  className,
-  children,
-}: {
-  title: string;
-  action?: React.ReactNode;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className={cn("bg-ivory p-5", className)}>
-      <div className="mb-3 flex items-center justify-between border-b hairline pb-3">
-        <h2 className="text-lg text-navy">{title}</h2>
-        {action}
-      </div>
-      {children}
-    </section>
-  );
-}
-
 function PanelLink({
   to,
   children,
@@ -482,18 +467,22 @@ function PanelLink({
   to: "/admin/products" | "/admin/categories" | "/admin/orders";
   children: React.ReactNode;
 }) {
+  // Navy text (gold on ivory fails contrast); the arrow carries the accent
   return (
-    <Link to={to} className="flex items-center gap-1 text-xs text-gold hover:text-navy">
-      {children} <ArrowLeft className="h-3 w-3" />
+    <Link
+      to={to}
+      className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs text-navy transition-colors hover:bg-gold/15"
+    >
+      {children} <ArrowLeft className="h-3 w-3 text-gold" />
     </Link>
   );
 }
 
 function Skeleton({ rows }: { rows: number }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" aria-busy="true">
       {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="h-9 animate-pulse bg-cream" />
+        <div key={i} className="h-9 animate-pulse rounded-md bg-navy/[0.06]" />
       ))}
     </div>
   );

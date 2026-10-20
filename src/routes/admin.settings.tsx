@@ -2,14 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Facebook, Instagram, LayoutTemplate, Loader2, RotateCcw, Twitter } from "lucide-react";
+import { Facebook, Instagram, LayoutTemplate, Twitter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { settingsQuery, type Settings } from "@/lib/data";
 import { CURRENCIES } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SnapchatIcon, WhatsappIcon } from "@/components/BrandIcons";
-import { Field, inp } from "./admin.categories";
+import { Field, PageHeader, SaveBar, Surface, inp } from "@/components/admin/kit";
 
 export const Route = createFileRoute("/admin/settings")({ component: SettingsPage });
 
@@ -79,10 +79,10 @@ function SettingsPage() {
 
   if (!data) {
     return (
-      <div className="max-w-5xl space-y-6">
-        <div className="h-10 w-48 animate-pulse bg-ivory" />
+      <div className="max-w-5xl space-y-6" aria-busy="true" aria-label="جارٍ تحميل الإعدادات">
+        <div className="h-10 w-48 animate-pulse rounded-lg bg-ivory" />
         {Array.from({ length: 3 }, (_, i) => (
-          <div key={i} className="h-48 animate-pulse bg-ivory" />
+          <div key={i} className="h-48 animate-pulse rounded-xl bg-ivory" />
         ))}
       </div>
     );
@@ -92,12 +92,9 @@ function SettingsPage() {
 
   return (
     <div className="max-w-5xl pb-28">
-      <h1 className="font-display text-4xl text-navy">الإعدادات</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        بيانات المتجر ومحتوى الصفحة الرئيسية وروابط التواصل.
-      </p>
+      <PageHeader title="الإعدادات" meta="بيانات المتجر، التواصل، روابط الحسابات، والسياسات." />
 
-      <div className="mt-10 space-y-10">
+      <div className="mt-8 space-y-8">
         <Section
           title="المتجر"
           description="الاسم والعملة ورسوم التوصيل المستخدمة في الأسعار وصفحة الطلب."
@@ -113,7 +110,8 @@ function SettingsPage() {
               value={d.currency ?? "EGP"}
               onChange={(e) => set({ currency: e.target.value })}
             >
-              {Object.entries(CURRENCIES).map(([code, [short, name]]) => (
+              {/* Native <option>s may not use the web font, so show the text label here */}
+              {Object.entries(CURRENCIES).map(([code, [, short, name]]) => (
                 <option key={code} value={code}>
                   {name} ({short})
                 </option>
@@ -121,18 +119,18 @@ function SettingsPage() {
             </select>
           </Field>
           <Field label="رسوم التوصيل">
-            <div className="relative" dir="ltr">
+            <div className="relative mt-1.5" dir="ltr">
               <input
                 type="number"
                 min={0}
                 inputMode="decimal"
-                className={cn(inp, "pe-14 text-end")}
+                className={cn(inp, "mt-0 pe-14 text-end tabular-nums")}
                 value={d.delivery_fee ?? ""}
                 onChange={(e) =>
                   set({ delivery_fee: e.target.value === "" ? 0 : Number(e.target.value) })
                 }
               />
-              <span className="pointer-events-none absolute top-1/2 end-3 mt-0.5 -translate-y-1/2 text-xs text-muted-foreground">
+              <span className="pointer-events-none absolute top-1/2 end-3 -translate-y-1/2 text-xs text-muted-foreground">
                 {currencyShort}
               </span>
             </div>
@@ -204,8 +202,8 @@ function SettingsPage() {
 
         <Section title="الصفحة الرئيسية" description="الواجهة، شريط العروض، قصتنا، وترتيب الأقسام.">
           <div className="sm:col-span-2">
-            <p className="text-muted-foreground">انتقلت إعدادات الصفحة الرئيسية إلى صفحة مستقلة.</p>
-            <Button asChild variant="outline" className="mt-3 gap-2">
+            <p className="text-muted-foreground">تُدار الصفحة الرئيسية من صفحة مستقلة.</p>
+            <Button asChild variant="outline" className="mt-3 h-10 gap-2">
               <Link to="/admin/home">
                 <LayoutTemplate className="h-4 w-4" /> تعديل الصفحة الرئيسية
               </Link>
@@ -216,40 +214,18 @@ function SettingsPage() {
         <Section title="سياسات المتجر" description="الاسترجاع والاستبدال والتوصيل والضمان.">
           <div className="sm:col-span-2">
             <Field label="النص">
-              <textarea rows={6} className={cn(inp, "h-auto py-2")} {...text("policies")} />
+              <textarea rows={6} className={cn(inp, "h-auto py-2.5")} {...text("policies")} />
             </Field>
           </div>
         </Section>
       </div>
 
-      {/* Save bar — appears when there are unsaved changes */}
-      <div
-        className={cn(
-          "fixed inset-x-0 bottom-0 z-20 border-t hairline bg-navy/95 backdrop-blur transition-transform duration-300 md:start-64",
-          dirty || saving ? "translate-y-0" : "translate-y-full",
-        )}
-      >
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] md:px-10">
-          <span className="text-sm text-cream/80">لديك تغييرات غير محفوظة</span>
-          <div className="flex gap-2">
-            <Button
-              variant="ghostGold"
-              onClick={() => setD(data)}
-              disabled={saving}
-              className="gap-2"
-            >
-              <RotateCcw className="h-4 w-4" /> تراجع
-            </Button>
-            <Button variant="gold" onClick={save} disabled={saving} className="min-w-28 gap-2">
-              {saving && <Loader2 className="h-4 w-4 animate-spin" />} حفظ
-            </Button>
-          </div>
-        </div>
-      </div>
+      <SaveBar visible={dirty} saving={saving} onSave={save} onReset={() => setD(data)} />
     </div>
   );
 }
 
+/** Title + description beside (lg) or above the fields, fields on the shared admin surface. */
 function Section({
   title,
   description,
@@ -261,13 +237,13 @@ function Section({
 }) {
   return (
     <section className="grid gap-4 lg:grid-cols-3 lg:gap-8">
-      <div>
-        <h2 className="font-sans text-lg text-navy">{title}</h2>
+      <div className="lg:pt-5">
+        <h2 className="text-base font-medium text-navy">{title}</h2>
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p>
       </div>
-      <div className="grid gap-4 bg-ivory p-5 text-sm sm:grid-cols-2 sm:p-6 lg:col-span-2">
+      <Surface className="grid gap-4 p-5 text-sm sm:grid-cols-2 sm:p-6 lg:col-span-2">
         {children}
-      </div>
+      </Surface>
     </section>
   );
 }
@@ -284,11 +260,11 @@ function IconInput({
 }: { icon: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) {
   // dir on the wrapper so the icon's `start` side matches the input's padding side
   return (
-    <div className="relative" dir={dir}>
-      <span className="pointer-events-none absolute top-1/2 start-3 mt-0.5 -translate-y-1/2 text-gold">
+    <div className="relative mt-1.5" dir={dir}>
+      <span className="pointer-events-none absolute top-1/2 start-3 -translate-y-1/2 text-gold">
         {icon}
       </span>
-      <input className={cn(inp, "ps-10", className)} {...props} />
+      <input className={cn(inp, "mt-0 ps-10", className)} {...props} />
     </div>
   );
 }

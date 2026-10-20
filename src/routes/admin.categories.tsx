@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, ChevronUp, ImageOff, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { FolderPlus, ImageOff, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Category } from "@/lib/data";
 import { slugify } from "@/lib/format";
@@ -21,6 +21,19 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { SingleImageUpload } from "@/components/SingleImageUpload";
+import {
+  Badge,
+  EmptyState,
+  ErrorState,
+  Field,
+  IconButton,
+  ListSkeleton,
+  PageHeader,
+  ReorderButtons,
+  Surface,
+  adminNum,
+  inp,
+} from "@/components/admin/kit";
 
 export const Route = createFileRoute("/admin/categories")({ component: Categories });
 
@@ -131,166 +144,142 @@ function Categories() {
   };
 
   const set = (patch: Draft) => setEdit((d) => ({ ...d, ...patch }));
+  const newCategory = () => setEdit({ is_active: true });
 
   return (
     <div className="max-w-5xl">
-      {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-4xl text-navy">الفئات</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {rows.length} فئة · {activeCount} ظاهرة في المتجر · الترتيب هنا هو ترتيب ظهورها في
-            الموقع
-          </p>
-        </div>
-        <Button onClick={() => setEdit({ is_active: true })} className="gap-2">
-          <Plus className="h-4 w-4" /> فئة جديدة
-        </Button>
-      </div>
+      <PageHeader
+        title="الفئات"
+        meta={
+          isLoading ? (
+            "جارٍ تحميل الفئات…"
+          ) : (
+            <>
+              <span className="text-navy tabular-nums">{adminNum.format(rows.length)}</span> فئة ·{" "}
+              <span className="text-navy tabular-nums">{adminNum.format(activeCount)}</span> ظاهرة
+              في المتجر · الترتيب هنا هو ترتيب ظهورها في الموقع
+            </>
+          )
+        }
+        actions={
+          <Button onClick={newCategory} className="h-10 gap-2">
+            <Plus className="h-4 w-4" /> فئة جديدة
+          </Button>
+        }
+      />
 
-      {/* List */}
-      <div className="mt-6 overflow-x-auto bg-ivory">
-        <table className="w-full min-w-[640px] text-sm">
-          <thead className="border-b text-xs text-muted-foreground">
-            <tr>
-              <th className="w-16 p-3 font-normal">الترتيب</th>
-              <th className="p-3 text-start font-normal">الفئة</th>
-              <th className="p-3 text-center font-normal">المنتجات</th>
-              <th className="p-3 text-center font-normal">ظاهرة</th>
-              <th className="p-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {isLoading &&
-              Array.from({ length: 3 }, (_, i) => (
-                <tr key={i}>
-                  <td colSpan={5} className="p-3">
-                    <div className="h-14 animate-pulse bg-cream" />
-                  </td>
-                </tr>
-              ))}
-            {isError && (
-              <tr>
-                <td colSpan={5} className="p-10 text-center text-muted-foreground">
-                  تعذر تحميل الفئات.{" "}
-                  <button onClick={() => refetch()} className="text-navy underline hover:text-gold">
-                    إعادة المحاولة
-                  </button>
-                </td>
-              </tr>
-            )}
-            {!isLoading && !isError && rows.length === 0 && (
-              <tr>
-                <td colSpan={5} className="p-10 text-center text-muted-foreground">
-                  لا توجد فئات بعد. أضف أول فئة لتنظيم منتجاتك.
-                </td>
-              </tr>
-            )}
+      <Surface className="mt-8">
+        {isLoading ? (
+          <ListSkeleton rows={4} thumb="square" />
+        ) : isError ? (
+          <ErrorState what="الفئات" onRetry={() => refetch()} />
+        ) : rows.length === 0 ? (
+          <EmptyState
+            icon={FolderPlus}
+            title="لا توجد فئات بعد"
+            text="الفئات تنظّم منتجاتك في المتجر وتظهر كبطاقات في الصفحة الرئيسية."
+            action={
+              <Button onClick={newCategory} className="h-10 gap-2">
+                <Plus className="h-4 w-4" /> فئة جديدة
+              </Button>
+            }
+          />
+        ) : (
+          <ul className="divide-y divide-navy/[0.07]">
             {rows.map((c, i) => (
-              <tr
+              <li
                 key={c.id}
-                className={cn("transition-colors hover:bg-cream/60", !c.is_active && "opacity-60")}
+                className="flex items-center gap-3 px-3 py-3 transition-colors duration-150 hover:bg-cream/60 sm:gap-4 sm:px-4"
               >
-                <td className="p-3">
-                  <div className="flex flex-col items-center">
-                    <button
-                      onClick={() => move(i, -1)}
-                      disabled={i === 0 || reordering}
-                      aria-label="تحريك لأعلى"
-                      className="flex h-6 w-6 items-center justify-center text-muted-foreground hover:text-navy disabled:opacity-25"
-                    >
-                      <ChevronUp className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => move(i, 1)}
-                      disabled={i === rows.length - 1 || reordering}
-                      aria-label="تحريك لأسفل"
-                      className="flex h-6 w-6 items-center justify-center text-muted-foreground hover:text-navy disabled:opacity-25"
-                    >
-                      <ChevronDown className="h-4 w-4" />
-                    </button>
-                  </div>
-                </td>
-                <td className="p-3">
-                  <div className="flex items-center gap-3">
-                    {c.image_url ? (
-                      <img src={c.image_url} alt="" className="h-14 w-14 shrink-0 object-cover" />
-                    ) : (
-                      <span className="flex h-14 w-14 shrink-0 items-center justify-center bg-cream text-muted-foreground">
-                        <ImageOff className="h-4 w-4" />
-                      </span>
-                    )}
-                    <div className="min-w-0">
-                      <button
-                        onClick={() => setEdit(c)}
-                        className="block truncate text-start text-navy hover:text-gold"
-                      >
-                        {c.name}
-                      </button>
-                      <p className="truncate text-xs text-muted-foreground" dir="ltr">
+                <ReorderButtons
+                  name={c.name}
+                  first={i === 0}
+                  last={i === rows.length - 1}
+                  disabled={reordering}
+                  onMove={(dir) => move(i, dir)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setEdit(c)}
+                  className={cn(
+                    "flex min-w-0 flex-1 items-center gap-3 rounded-lg text-start focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold",
+                    !c.is_active && "opacity-60",
+                  )}
+                  aria-label={`تعديل ${c.name}`}
+                >
+                  {c.image_url ? (
+                    <img
+                      src={c.image_url}
+                      alt=""
+                      loading="lazy"
+                      className="h-14 w-14 shrink-0 rounded-md object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-cream text-muted-foreground">
+                      <ImageOff className="h-4 w-4" />
+                    </span>
+                  )}
+                  <span className="min-w-0">
+                    <span className="block truncate text-navy">{c.name}</span>
+                    <span className="mt-1 flex flex-wrap items-center gap-2">
+                      <Badge tone={c.count ? "soft" : "muted"}>
+                        <span className="tabular-nums">{adminNum.format(c.count)}</span> منتج
+                      </Badge>
+                      <bdi className="hidden truncate text-xs text-muted-foreground sm:inline">
                         /shop?cat={c.slug}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-                <td className="p-3 text-center">
-                  <span
-                    className={cn(
-                      "px-2 py-0.5 text-xs",
-                      c.count ? "bg-navy/5 text-navy" : "text-muted-foreground",
-                    )}
-                  >
-                    {c.count}
+                      </bdi>
+                    </span>
                   </span>
-                </td>
-                <td className="p-3 text-center">
+                </button>
+                <div className="flex shrink-0 flex-col items-center gap-1">
                   <Switch
                     checked={c.is_active}
                     onCheckedChange={() => toggleActive(c)}
-                    aria-label="ظاهرة في المتجر"
+                    aria-label={`إظهار ${c.name} في المتجر`}
                   />
-                </td>
-                <td className="p-3">
-                  <div className="flex justify-end gap-1">
-                    <IconBtn label="تعديل" onClick={() => setEdit(c)}>
-                      <Pencil className="h-4 w-4" />
-                    </IconBtn>
-                    <IconBtn
-                      label={c.count ? "لا يمكن حذف فئة بها منتجات" : "حذف"}
-                      danger
-                      disabled={c.count > 0}
-                      onClick={() => setToDelete(c)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </IconBtn>
-                  </div>
-                </td>
-              </tr>
+                  <span className="text-[0.65rem] text-muted-foreground">
+                    {c.is_active ? "ظاهرة" : "مخفية"}
+                  </span>
+                </div>
+                <div className="hidden shrink-0 gap-0.5 sm:flex">
+                  <IconButton label={`تعديل ${c.name}`} onClick={() => setEdit(c)}>
+                    <Pencil className="h-4 w-4" />
+                  </IconButton>
+                  <IconButton
+                    label={c.count ? "لا يمكن حذف فئة بها منتجات" : `حذف ${c.name}`}
+                    danger
+                    disabled={c.count > 0}
+                    onClick={() => setToDelete(c)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </IconButton>
+                </div>
+              </li>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </ul>
+        )}
+      </Surface>
 
       {/* Editor */}
       <Dialog open={!!edit} onOpenChange={(o) => !o && !busy && setEdit(null)}>
         <DialogContent
           dir="rtl"
-          className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 bg-ivory p-0 sm:max-w-xl"
+          className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 bg-ivory p-0 sm:max-w-xl sm:rounded-xl"
         >
-          <DialogHeader className="border-b px-6 py-4 text-start">
+          <DialogHeader className="border-b border-navy/10 px-6 py-5 text-start">
             <DialogTitle className="font-display text-2xl text-navy">
               {edit?.id ? "تعديل الفئة" : "فئة جديدة"}
             </DialogTitle>
           </DialogHeader>
           {edit && (
             <>
-              <div className="flex-1 space-y-4 overflow-y-auto px-6 py-6 text-sm">
+              <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6 text-sm">
                 <SingleImageUpload
                   label="صورة الفئة"
                   folder="categories"
                   url={edit.image_url ?? null}
                   onChange={(image_url) => set({ image_url })}
-                  className="aspect-[16/9]"
+                  className="aspect-[16/9] rounded-lg"
                   emptyTitle="اختر صورة للفئة"
                   emptyHint="تظهر كبطاقة في قسم المجموعات بالصفحة الرئيسية"
                 />
@@ -316,25 +305,58 @@ function Categories() {
                 <Field label="الوصف">
                   <textarea
                     rows={3}
-                    className={`${inp} h-auto py-2`}
+                    className={cn(inp, "h-auto py-2.5")}
                     value={edit.description ?? ""}
                     onChange={(e) => set({ description: e.target.value })}
                   />
                 </Field>
+                {edit.id && (
+                  <p className="text-xs text-muted-foreground">
+                    {(() => {
+                      const r = rows.find((x) => x.id === edit.id);
+                      return r?.count
+                        ? `تحتوي على ${adminNum.format(r.count)} منتج، لذلك لا يمكن حذفها قبل نقل منتجاتها.`
+                        : "لا تحتوي على منتجات.";
+                    })()}
+                  </p>
+                )}
               </div>
-              <div className="flex flex-wrap items-center gap-3 border-t px-6 py-4 text-sm">
-                <label className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-3 border-t border-navy/10 px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] text-sm">
+                <label className="flex min-h-10 cursor-pointer items-center gap-2 text-navy">
                   <Switch
                     checked={edit.is_active ?? true}
                     onCheckedChange={(v) => set({ is_active: v })}
-                  />{" "}
+                  />
                   ظاهرة في المتجر
                 </label>
-                <div className="ms-auto flex gap-2">
-                  <Button variant="outline" onClick={() => setEdit(null)} disabled={busy}>
+                {edit.id &&
+                  (() => {
+                    const r = rows.find((x) => x.id === edit.id);
+                    return r && r.count === 0 ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setToDelete(r)}
+                        className="h-10 gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/5 sm:hidden"
+                      >
+                        <Trash2 className="h-4 w-4" /> حذف
+                      </Button>
+                    ) : null;
+                  })()}
+                <div className="flex w-full gap-2 sm:ms-auto sm:w-auto">
+                  <Button
+                    variant="outline"
+                    onClick={() => setEdit(null)}
+                    disabled={busy}
+                    className="h-10 flex-1 sm:flex-none"
+                  >
                     إلغاء
                   </Button>
-                  <Button onClick={save} disabled={busy} className="min-w-28 gap-2">
+                  <Button
+                    onClick={save}
+                    disabled={busy}
+                    className="h-10 min-w-28 flex-1 gap-2 sm:flex-none"
+                  >
                     {busy && <Loader2 className="h-4 w-4 animate-spin" />}
                     {edit.id ? "حفظ التعديلات" : "إضافة الفئة"}
                   </Button>
@@ -347,66 +369,28 @@ function Categories() {
 
       {/* Delete confirmation */}
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-        <AlertDialogContent dir="rtl" className="bg-ivory">
+        <AlertDialogContent dir="rtl" className="bg-ivory sm:rounded-xl">
           <AlertDialogHeader className="text-start">
-            <AlertDialogTitle>حذف الفئة؟</AlertDialogTitle>
+            <AlertDialogTitle>حذف «{toDelete?.name}»؟</AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم حذف «{toDelete?.name}» نهائياً. لإخفائها مؤقتاً يمكنك إيقاف «ظاهرة» بدلاً من
-              الحذف.
+              تُحذف الفئة نهائياً. لإخفائها مؤقتاً أوقف «ظاهرة في المتجر» بدلاً من الحذف.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogCancel>تراجع</AlertDialogCancel>
             <AlertDialogAction
-              onClick={confirmDelete}
+              onClick={async () => {
+                const id = toDelete?.id;
+                await confirmDelete();
+                if (edit?.id === id) setEdit(null);
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              حذف
+              حذف الفئة
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
-}
-
-function IconBtn({
-  label,
-  danger,
-  disabled,
-  onClick,
-  children,
-}: {
-  label: string;
-  danger?: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      title={label}
-      className={cn(
-        "flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30",
-        danger
-          ? "enabled:hover:bg-destructive/10 enabled:hover:text-destructive"
-          : "hover:bg-gold/15 hover:text-navy",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-export const inp = "mt-1 h-10 w-full border bg-cream px-3 focus:outline-none focus:border-gold";
-export function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="text-muted-foreground">{label}</span>
-      {children}
-    </label>
   );
 }

@@ -5,17 +5,20 @@ import { toast } from "sonner";
 import {
   ChevronDown,
   ChevronUp,
-  Flame,
   Copy,
+  Flame,
   ImageOff,
   Loader2,
+  PackagePlus,
   Pencil,
   Plus,
+  RefreshCw,
   Ruler,
   Search,
   Star,
   Trash2,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { settingsQuery, type Product } from "@/lib/data";
@@ -36,20 +39,31 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
-import { Field, inp } from "./admin.categories";
+import {
+  EmptyState,
+  ErrorState,
+  Field,
+  FilterTabs,
+  IconButton,
+  ListSkeleton,
+  ResultBar,
+  SearchInput,
+  SectionTitle,
+  inp,
+} from "@/components/admin/kit";
 
 export const Route = createFileRoute("/admin/products")({ component: Products });
 
-/** Form state: price may be empty while editing. */
 /** Form state: price may be empty while editing; sizes are parsed from the jsonb column. */
 type Draft = Omit<Partial<Product>, "price" | "sizes"> & {
   price?: number | null;
   sizes?: SizeOption[];
 };
-const toDraft = (p: Product): Draft => ({ ...p, sizes: productSizes(p) });
 type StatusFilter = "all" | "published" | "draft";
 
+const toDraft = (p: Product): Draft => ({ ...p, sizes: productSizes(p) });
 const PRODUCTS_KEY = ["admin", "products"] as const;
+const count = new Intl.NumberFormat("ar-EG");
 const list = (s: string) =>
   s
     .split(",")
@@ -66,6 +80,11 @@ const blank = (): Draft => ({
   is_published: false,
   is_featured: false,
 });
+const STATUS_TABS: [StatusFilter, string][] = [
+  ["all", "الكل"],
+  ["published", "منشور"],
+  ["draft", "مسودة"],
+];
 
 function validate(d: Draft): string | null {
   if (!d.name?.trim()) return "اسم المنتج مطلوب";
@@ -104,7 +123,7 @@ function Products() {
       return data;
     },
   });
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isFetching, isError, refetch } = useQuery({
     queryKey: PRODUCTS_KEY,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -120,12 +139,9 @@ function Products() {
 
   const catName = useMemo(() => new Map(cats?.map((c) => [c.id, c.name])), [cats]);
   const all = useMemo(() => data ?? [], [data]);
-  const stats = {
-    total: all.length,
-    published: all.filter((p) => p.is_published).length,
-    lowStock: all.filter((p) => p.availability === "in_stock" && p.stock <= LOW_STOCK).length,
-  };
-  const rows = useMemo(() => {
+  const lowStock = all.filter((p) => p.availability === "in_stock" && p.stock <= LOW_STOCK).length;
+  // Search + category narrow the set first; the status tab counts describe that narrowed set
+  const scoped = useMemo(() => {
     const term = q.trim().toLowerCase();
     return all.filter(
       (p) =>
@@ -133,10 +149,24 @@ function Products() {
           p.name.toLowerCase().includes(term) ||
           p.sku?.toLowerCase().includes(term) ||
           p.slug.includes(term)) &&
-        (!cat || (cat === "none" ? !p.category_id : p.category_id === cat)) &&
-        (status === "all" || (status === "published") === p.is_published),
+        (!cat || (cat === "none" ? !p.category_id : p.category_id === cat)),
     );
-  }, [all, q, cat, status]);
+  }, [all, q, cat]);
+  const tabCount: Record<StatusFilter, number> = {
+    all: scoped.length,
+    published: scoped.filter((p) => p.is_published).length,
+    draft: scoped.filter((p) => !p.is_published).length,
+  };
+  const rows = useMemo(
+    () => scoped.filter((p) => status === "all" || (status === "published") === p.is_published),
+    [scoped, status],
+  );
+  const filtered = status !== "all" || q.trim() !== "" || cat !== "";
+  const clearFilters = () => {
+    setStatus("all");
+    setQ("");
+    setCat("");
+  };
 
   const refresh = () =>
     Promise.all(
@@ -191,6 +221,7 @@ function Products() {
     const { error } = await supabase.from("products").delete().eq("id", toDelete.id);
     if (error) toast.error(error.message);
     else toast.success("تم حذف المنتج");
+    if (edit?.id === toDelete.id) setEdit(null);
     setToDelete(null);
     refresh();
   };
@@ -218,221 +249,299 @@ function Products() {
   };
 
   const set = (patch: Draft) => setEdit((d) => ({ ...d, ...patch }));
+  const editing = edit?.id ? all.find((p) => p.id === edit.id) : undefined;
 
   return (
-    <div>
+    <div className="max-w-6xl">
       {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl text-navy">المنتجات</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {stats.total} منتج · {stats.published} منشور · {stats.total - stats.published} مسودة
-            {stats.lowStock > 0 && (
-              <span className="text-destructive"> · {stats.lowStock} مخزون منخفض</span>
+          <h1 className="font-display text-4xl leading-tight text-navy">المنتجات</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {isLoading ? (
+              "جارٍ تحميل المنتجات…"
+            ) : (
+              <>
+                <span className="text-navy tabular-nums">{count.format(all.length)}</span> منتج
+                {lowStock > 0 && (
+                  <>
+                    {" · "}
+                    <span className="text-destructive tabular-nums">
+                      {count.format(lowStock)}
+                    </span>{" "}
+                    بمخزون منخفض
+                  </>
+                )}
+              </>
             )}
           </p>
         </div>
-        <Button onClick={() => setEdit(blank())} className="gap-2">
-          <Plus className="h-4 w-4" /> منتج جديد
-        </Button>
-      </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="h-10 gap-2"
+            aria-label="تحديث القائمة"
+          >
+            <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+            <span className="hidden sm:inline">تحديث</span>
+          </Button>
+          <Button onClick={() => setEdit(blank())} className="h-10 gap-2">
+            <Plus className="h-4 w-4" /> منتج جديد
+          </Button>
+        </div>
+      </header>
 
-      {/* Toolbar */}
-      <div className="mt-6 flex flex-wrap items-center gap-3 bg-ivory p-3">
-        <div className="relative min-w-[12rem] flex-1">
-          <Search className="pointer-events-none absolute top-1/2 start-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            placeholder="بحث بالاسم أو SKU"
+      <div className="mt-8 overflow-hidden rounded-xl border border-navy/10 bg-ivory shadow-[0_1px_2px_oklch(0.19_0.03_260/0.06)]">
+        <FilterTabs
+          label="تصفية حسب الحالة"
+          value={status}
+          onChange={setStatus}
+          items={STATUS_TABS.map(([v, label]) => ({ value: v, label, count: tabCount[v] }))}
+        />
+
+        {/* Search + category */}
+        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+          <SearchInput
+            className="flex-1"
+            label="بحث في المنتجات"
+            placeholder="الاسم، SKU، أو الرابط"
             value={q}
-            onChange={(e) => setQ(e.target.value)}
-            className={cn(inp, "mt-0 ps-9")}
+            onChange={setQ}
           />
-        </div>
-        <select
-          value={cat}
-          onChange={(e) => setCat(e.target.value)}
-          className={cn(inp, "mt-0 w-auto min-w-[10rem]")}
-          aria-label="الفئة"
-        >
-          <option value="">كل الفئات</option>
-          {cats?.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-          <option value="none">بدون فئة</option>
-        </select>
-        <div className="flex border bg-cream text-sm" role="group" aria-label="الحالة">
-          {(
-            [
-              ["all", "الكل"],
-              ["published", "منشور"],
-              ["draft", "مسودة"],
-            ] as const
-          ).map(([v, label]) => (
-            <button
-              key={v}
-              onClick={() => setStatus(v)}
-              className={cn(
-                "h-10 px-4 transition-colors",
-                status === v ? "bg-navy text-cream" : "text-navy hover:bg-gold/15",
-              )}
+          <label>
+            <span className="sr-only">الفئة</span>
+            <select
+              value={cat}
+              onChange={(e) => setCat(e.target.value)}
+              className={cn(inp, "mt-0 h-11 rounded-lg sm:w-48")}
             >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="mt-4 overflow-x-auto bg-ivory">
-        <table className="w-full min-w-[820px] text-sm">
-          <thead className="border-b text-xs text-muted-foreground">
-            <tr>
-              <th className="p-3 text-start font-normal">المنتج</th>
-              <th className="p-3 text-start font-normal">السعر</th>
-              <th className="p-3 text-start font-normal">المخزون</th>
-              <th className="p-3 text-center font-normal">مميز</th>
-              <th className="p-3 text-center font-normal">الأكثر مبيعاً</th>
-              <th className="p-3 text-center font-normal">منشور</th>
-              <th className="p-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {isLoading &&
-              Array.from({ length: 4 }, (_, i) => (
-                <tr key={i}>
-                  <td colSpan={7} className="p-3">
-                    <div className="h-12 animate-pulse bg-cream" />
-                  </td>
-                </tr>
+              <option value="">كل الفئات</option>
+              {cats?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
               ))}
-            {isError && (
-              <tr>
-                <td colSpan={7} className="p-10 text-center text-muted-foreground">
-                  تعذر تحميل المنتجات.{" "}
-                  <button onClick={() => refetch()} className="text-navy underline hover:text-gold">
-                    إعادة المحاولة
-                  </button>
-                </td>
-              </tr>
-            )}
-            {!isLoading && !isError && rows.length === 0 && (
-              <tr>
-                <td colSpan={7} className="p-10 text-center text-muted-foreground">
-                  {all.length === 0
-                    ? "لا توجد منتجات بعد. ابدأ بإضافة أول منتج."
-                    : "لا توجد نتائج مطابقة للبحث أو الفلاتر."}
-                </td>
-              </tr>
-            )}
-            {rows.map((p) => {
-              const price = effectivePrice(p);
-              const onSale = price < Number(p.price);
-              return (
-                <tr key={p.id} className="transition-colors hover:bg-cream/60">
-                  <td className="p-3">
-                    <div className="flex items-center gap-3">
-                      {p.images[0] ? (
-                        <img src={p.images[0]} alt="" className="h-14 w-11 shrink-0 object-cover" />
-                      ) : (
-                        <span className="flex h-14 w-11 shrink-0 items-center justify-center bg-cream text-muted-foreground">
-                          <ImageOff className="h-4 w-4" />
-                        </span>
-                      )}
-                      <div className="min-w-0">
-                        <button
-                          onClick={() => setEdit(toDraft(p))}
-                          className="block truncate text-start text-navy hover:text-gold"
-                        >
-                          {p.name}
-                        </button>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {(p.category_id && catName.get(p.category_id)) || "بدون فئة"}
-                          {p.sku && <span dir="ltr"> · {p.sku}</span>}
+              <option value="none">بدون فئة</option>
+            </select>
+          </label>
+        </div>
+
+        {/* Result summary */}
+        {!isLoading && !isError && all.length > 0 && filtered && (
+          <ResultBar onClear={clearFilters}>
+            <span className="text-navy tabular-nums">{count.format(rows.length)}</span> من{" "}
+            <span className="tabular-nums">{count.format(all.length)}</span> منتج
+          </ResultBar>
+        )}
+
+        {/* Results */}
+        <div className="border-t border-navy/10">
+          {isLoading ? (
+            <ListSkeleton thumb="tall" />
+          ) : isError ? (
+            <ErrorState what="المنتجات" onRetry={() => refetch()} />
+          ) : rows.length === 0 ? (
+            all.length === 0 ? (
+              <EmptyState
+                icon={PackagePlus}
+                title="لا توجد منتجات بعد"
+                text="أضف أول منتج بصوره وسعره، ثم انشره ليظهر في المتجر."
+                action={
+                  <Button onClick={() => setEdit(blank())} className="h-10 gap-2">
+                    <Plus className="h-4 w-4" /> منتج جديد
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState
+                icon={Search}
+                title="لا توجد منتجات مطابقة"
+                text="جرّب كلمة بحث أخرى أو فئة مختلفة."
+                action={
+                  <Button variant="outline" onClick={clearFilters} className="h-10">
+                    مسح الفلاتر
+                  </Button>
+                }
+              />
+            )
+          ) : (
+            <>
+              {/* Phones: divided list — tap a row to edit; publish toggles in place */}
+              <ul className="divide-y divide-navy/[0.07] md:hidden">
+                {rows.map((p) => (
+                  <li key={p.id} className="flex items-stretch">
+                    <button
+                      type="button"
+                      onClick={() => setEdit(toDraft(p))}
+                      className="flex min-w-0 flex-1 items-center gap-3 py-3 ps-4 pe-2 text-start transition-colors duration-150 hover:bg-cream/70 focus-visible:bg-cream focus-visible:outline-none active:bg-cream"
+                      aria-label={`تعديل ${p.name}`}
+                    >
+                      <Thumb p={p} />
+                      <div className="min-w-0 flex-1">
+                        <p className="flex items-center gap-1.5 truncate text-sm text-navy">
+                          <span className="truncate">{p.name}</span>
+                          <Flags p={p} />
                         </p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {(p.category_id && catName.get(p.category_id)) || "بدون فئة"}
+                        </p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                          <Price p={p} currency={currency} />
+                          <StockBadge p={p} />
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="whitespace-nowrap p-3">
-                    <span className="text-navy">{formatPrice(price, currency)}</span>
-                    {onSale && (
-                      <span className="ms-2 text-xs text-muted-foreground line-through">
-                        {formatPrice(Number(p.price), currency)}
+                    </button>
+                    <div className="flex shrink-0 flex-col items-center justify-center gap-1 border-s border-navy/[0.07] px-3">
+                      <Switch
+                        checked={p.is_published}
+                        onCheckedChange={() => toggle(p, "is_published")}
+                        aria-label={`نشر ${p.name}`}
+                      />
+                      <span className="text-[0.65rem] text-muted-foreground">
+                        {p.is_published ? "منشور" : "مسودة"}
                       </span>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap p-3">
-                    <StockBadge p={p} />
-                  </td>
-                  <td className="p-3 text-center">
-                    <button
-                      onClick={() => toggle(p, "is_featured")}
-                      aria-label={p.is_featured ? "إلغاء التمييز" : "تمييز"}
-                      title={p.is_featured ? "إلغاء التمييز" : "تمييز"}
-                      className={cn(
-                        "inline-flex h-8 w-8 items-center justify-center",
-                        p.is_featured ? "text-gold" : "text-muted-foreground/40 hover:text-gold",
-                      )}
-                    >
-                      <Star className="h-4 w-4" fill={p.is_featured ? "currentColor" : "none"} />
-                    </button>
-                  </td>
-                  <td className="p-3 text-center">
-                    <button
-                      onClick={() => toggle(p, "is_bestseller")}
-                      aria-pressed={p.is_bestseller}
-                      aria-label={
-                        p.is_bestseller ? "إزالة من الأكثر مبيعاً" : "إضافة إلى الأكثر مبيعاً"
-                      }
-                      title={p.is_bestseller ? "إزالة من الأكثر مبيعاً" : "إضافة إلى الأكثر مبيعاً"}
-                      className={cn(
-                        "inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors",
-                        p.is_bestseller
-                          ? "bg-gold/15 text-gold"
-                          : "text-muted-foreground/40 hover:text-gold",
-                      )}
-                    >
-                      <Flame className="h-4 w-4" fill={p.is_bestseller ? "currentColor" : "none"} />
-                    </button>
-                  </td>
-                  <td className="p-3 text-center">
-                    <Switch
-                      checked={p.is_published}
-                      onCheckedChange={() => toggle(p, "is_published")}
-                      aria-label="منشور"
-                    />
-                  </td>
-                  <td className="p-3">
-                    <div className="flex justify-end gap-1">
-                      <IconBtn label="تعديل" onClick={() => setEdit(toDraft(p))}>
-                        <Pencil className="h-4 w-4" />
-                      </IconBtn>
-                      <IconBtn label="نسخ" onClick={() => duplicate(p)}>
-                        <Copy className="h-4 w-4" />
-                      </IconBtn>
-                      <IconBtn label="حذف" danger onClick={() => setToDelete(p)}>
-                        <Trash2 className="h-4 w-4" />
-                      </IconBtn>
                     </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  </li>
+                ))}
+              </ul>
+
+              {/* md and up: table */}
+              <table className="hidden w-full text-sm md:table">
+                <thead className="bg-navy/[0.03] text-xs text-muted-foreground">
+                  <tr>
+                    <th scope="col" className="px-4 py-3 text-start font-normal">
+                      المنتج
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-end font-normal">
+                      السعر
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-start font-normal">
+                      المخزون
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-start font-normal">
+                      الظهور في المتجر
+                    </th>
+                    <th scope="col" className="px-4 py-3">
+                      <span className="sr-only">إجراءات</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-navy/[0.07]">
+                  {rows.map((p) => (
+                    <tr key={p.id} className="transition-colors duration-150 hover:bg-cream/70">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <Thumb p={p} />
+                          <div className="min-w-0">
+                            <button
+                              type="button"
+                              onClick={() => setEdit(toDraft(p))}
+                              className="block max-w-xs truncate rounded-sm text-start text-navy underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                            >
+                              {p.name}
+                            </button>
+                            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                              {(p.category_id && catName.get(p.category_id)) || "بدون فئة"}
+                              {p.sku && (
+                                <>
+                                  {" · "}
+                                  <bdi className="tabular-nums">{p.sku}</bdi>
+                                </>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-end">
+                        <Price p={p} currency={currency} stacked />
+                      </td>
+                      <td className="px-4 py-3">
+                        <StockBadge p={p} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <Switch
+                            checked={p.is_published}
+                            onCheckedChange={() => toggle(p, "is_published")}
+                            aria-label={`نشر ${p.name}`}
+                          />
+                          <span className="w-10 text-xs text-muted-foreground">
+                            {p.is_published ? "منشور" : "مسودة"}
+                          </span>
+                          <span className="h-5 w-px bg-navy/10" aria-hidden />
+                          <FlagToggle
+                            icon={Star}
+                            active={p.is_featured}
+                            onClick={() => toggle(p, "is_featured")}
+                            label={p.is_featured ? "إلغاء التمييز" : "تمييز المنتج"}
+                          />
+                          <FlagToggle
+                            icon={Flame}
+                            active={p.is_bestseller}
+                            onClick={() => toggle(p, "is_bestseller")}
+                            label={
+                              p.is_bestseller ? "إزالة من الأكثر مبيعاً" : "إضافة إلى الأكثر مبيعاً"
+                            }
+                          />
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-end gap-0.5">
+                          <IconButton label={`تعديل ${p.name}`} onClick={() => setEdit(toDraft(p))}>
+                            <Pencil className="h-4 w-4" />
+                          </IconButton>
+                          <IconButton label={`نسخ ${p.name}`} onClick={() => duplicate(p)}>
+                            <Copy className="h-4 w-4" />
+                          </IconButton>
+                          <IconButton label={`حذف ${p.name}`} danger onClick={() => setToDelete(p)}>
+                            <Trash2 className="h-4 w-4" />
+                          </IconButton>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Editor */}
       <Dialog open={!!edit} onOpenChange={(o) => !o && !saving && setEdit(null)}>
         <DialogContent
           dir="rtl"
-          className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 bg-ivory p-0 sm:max-w-3xl"
+          className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 bg-ivory p-0 sm:max-w-3xl sm:rounded-xl"
         >
-          <DialogHeader className="border-b px-6 py-4 text-start">
+          <DialogHeader className="border-b border-navy/10 px-6 py-5 text-start">
             <DialogTitle className="font-display text-2xl text-navy">
               {edit?.id ? "تعديل المنتج" : "منتج جديد"}
             </DialogTitle>
+            {/* Duplicate / delete live here too, so they're reachable on phones */}
+            {editing && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => duplicate(editing)}
+                  className="h-8 gap-1.5"
+                >
+                  <Copy className="h-3.5 w-3.5" /> نسخ كمنتج جديد
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setToDelete(editing)}
+                  className="h-8 gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/5"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> حذف
+                </Button>
+              </div>
+            )}
           </DialogHeader>
           {edit && (
             <>
@@ -489,6 +598,17 @@ function Products() {
                   </div>
                 </Section>
 
+                <section>
+                  <SectionTitle>الصور</SectionTitle>
+                  <ImageUploader
+                    folder="products"
+                    images={edit.images ?? []}
+                    onChange={(update) =>
+                      setEdit((d) => ({ ...d, images: update(d?.images ?? []) }))
+                    }
+                  />
+                </section>
+
                 <Section title="التسعير والمخزون">
                   <Field label="السعر *">
                     <NumberInput value={edit.price} onChange={(price) => set({ price })} min={0} />
@@ -503,8 +623,11 @@ function Products() {
                     {edit.price != null &&
                       edit.sale_price != null &&
                       edit.sale_price < edit.price && (
-                        <span className="mt-1 block text-xs text-gold">
-                          خصم {Math.round((1 - edit.sale_price / edit.price) * 100)}%
+                        <span className="mt-1 block text-xs text-navy">
+                          خصم{" "}
+                          <span className="tabular-nums">
+                            {Math.round((1 - edit.sale_price / edit.price) * 100)}٪
+                          </span>
                         </span>
                       )}
                   </Field>
@@ -516,7 +639,7 @@ function Products() {
                       step={1}
                     />
                   </Field>
-                  <Field label="الحالة">
+                  <Field label="التوفر">
                     <select
                       className={inp}
                       value={edit.availability}
@@ -532,7 +655,7 @@ function Products() {
                 </Section>
 
                 <section>
-                  <h3 className="eyebrow mb-1 border-b hairline pb-2 font-sans">المقاسات</h3>
+                  <SectionTitle>المقاسات</SectionTitle>
                   <SizesEditor
                     sizes={edit.sizes ?? []}
                     onChange={(sizes) => set({ sizes })}
@@ -575,15 +698,15 @@ function Products() {
                       />
                     </Field>
                   </div>
-                  <div className="sm:col-span-3 grid gap-4 sm:grid-cols-2">
-                    <Field label="التشطيبات (مفصولة بفاصلة)">
+                  <div className="grid gap-4 sm:col-span-3 sm:grid-cols-2">
+                    <Field label="التشطيبات (افصل بينها بفاصلة)">
                       <input
                         className={inp}
                         defaultValue={edit.finishes?.join("، ")}
                         onBlur={(e) => set({ finishes: list(e.target.value.replace(/،/g, ",")) })}
                       />
                     </Field>
-                    <Field label="الألوان (مفصولة بفاصلة)">
+                    <Field label="الألوان (افصل بينها بفاصلة)">
                       <input
                         className={inp}
                         defaultValue={edit.colors?.join("، ")}
@@ -592,49 +715,44 @@ function Products() {
                     </Field>
                   </div>
                 </Section>
-
-                <section>
-                  <ImageUploader
-                    folder="products"
-                    images={edit.images ?? []}
-                    onChange={(update) =>
-                      setEdit((d) => ({ ...d, images: update(d?.images ?? []) }))
-                    }
-                  />
-                </section>
               </div>
 
               {/* Sticky footer */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t bg-ivory px-6 py-4 text-sm">
-                <label className="flex items-center gap-2">
-                  <Switch
+              <div className="border-t border-navy/10 bg-ivory px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
+                  <FooterSwitch
                     checked={edit.is_published ?? false}
-                    onCheckedChange={(v) => set({ is_published: v })}
-                  />{" "}
-                  منشور
-                </label>
-                <label className="flex items-center gap-2">
-                  <Switch
+                    onChange={(v) => set({ is_published: v })}
+                    label="منشور"
+                  />
+                  <FooterSwitch
                     checked={edit.is_featured ?? false}
-                    onCheckedChange={(v) => set({ is_featured: v })}
-                  />{" "}
-                  مميز
-                </label>
-                <label className="flex items-center gap-2">
-                  <Switch
+                    onChange={(v) => set({ is_featured: v })}
+                    label="مميز"
+                  />
+                  <FooterSwitch
                     checked={edit.is_bestseller ?? false}
-                    onCheckedChange={(v) => set({ is_bestseller: v })}
-                  />{" "}
-                  الأكثر مبيعاً
-                </label>
-                <div className="ms-auto flex gap-2">
-                  <Button variant="outline" onClick={() => setEdit(null)} disabled={saving}>
-                    إلغاء
-                  </Button>
-                  <Button onClick={save} disabled={saving} className="min-w-28 gap-2">
-                    {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {edit.id ? "حفظ التعديلات" : "إضافة المنتج"}
-                  </Button>
+                    onChange={(v) => set({ is_bestseller: v })}
+                    label="الأكثر مبيعاً"
+                  />
+                  <div className="flex w-full gap-2 sm:ms-auto sm:w-auto">
+                    <Button
+                      variant="outline"
+                      onClick={() => setEdit(null)}
+                      disabled={saving}
+                      className="h-10 flex-1 sm:flex-none"
+                    >
+                      إلغاء
+                    </Button>
+                    <Button
+                      onClick={save}
+                      disabled={saving}
+                      className="h-10 min-w-32 flex-1 gap-2 sm:flex-none"
+                    >
+                      {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {edit.id ? "حفظ التعديلات" : "إضافة المنتج"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </>
@@ -644,21 +762,20 @@ function Products() {
 
       {/* Delete confirmation */}
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-        <AlertDialogContent dir="rtl" className="bg-ivory">
+        <AlertDialogContent dir="rtl" className="bg-ivory sm:rounded-xl">
           <AlertDialogHeader className="text-start">
-            <AlertDialogTitle>حذف المنتج؟</AlertDialogTitle>
+            <AlertDialogTitle>حذف «{toDelete?.name}»؟</AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم حذف «{toDelete?.name}» نهائياً ولا يمكن التراجع. لإخفائه مؤقتاً يمكنك إلغاء النشر
-              بدلاً من الحذف.
+              يُحذف المنتج نهائياً ولا يمكن التراجع. لإخفائه مؤقتاً ألغِ النشر بدلاً من الحذف.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogCancel>تراجع</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              حذف
+              حذف المنتج
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -678,11 +795,114 @@ function Section({
 }) {
   return (
     <section>
-      <h3 className="eyebrow mb-4 border-b hairline pb-2 font-sans">{title}</h3>
+      <SectionTitle>{title}</SectionTitle>
       <div className={cn("grid gap-4", cols === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
         {children}
       </div>
     </section>
+  );
+}
+
+function Thumb({ p }: { p: Product }) {
+  return p.images[0] ? (
+    <img
+      src={p.images[0]}
+      alt=""
+      loading="lazy"
+      className="h-14 w-11 shrink-0 rounded-md object-cover"
+    />
+  ) : (
+    <span className="flex h-14 w-11 shrink-0 items-center justify-center rounded-md bg-cream text-muted-foreground">
+      <ImageOff className="h-4 w-4" />
+    </span>
+  );
+}
+
+function Price({
+  p,
+  currency,
+  stacked,
+}: {
+  p: Product;
+  currency: string | undefined;
+  stacked?: boolean;
+}) {
+  const price = effectivePrice(p);
+  const onSale = price < Number(p.price);
+  return (
+    <span
+      className={cn(
+        "tabular-nums",
+        stacked ? "flex flex-col items-end" : "inline-flex items-baseline gap-2",
+      )}
+    >
+      <span className="text-navy">{formatPrice(price, currency)}</span>
+      {onSale && (
+        <span className="text-xs text-muted-foreground line-through">
+          {formatPrice(Number(p.price), currency)}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** Small read-only markers on the phone list (toggles live in the editor there). */
+function Flags({ p }: { p: Product }) {
+  if (!p.is_featured && !p.is_bestseller) return null;
+  return (
+    <span className="flex shrink-0 items-center gap-1 text-gold">
+      {p.is_featured && <Star className="h-3.5 w-3.5" fill="currentColor" aria-label="مميز" />}
+      {p.is_bestseller && (
+        <Flame className="h-3.5 w-3.5" fill="currentColor" aria-label="الأكثر مبيعاً" />
+      )}
+    </span>
+  );
+}
+
+function FlagToggle({
+  icon: Icon,
+  active,
+  onClick,
+  label,
+}: {
+  icon: LucideIcon;
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-gold",
+        active
+          ? "bg-gold/15 text-gold"
+          : "text-muted-foreground/50 hover:bg-gold/10 hover:text-gold",
+      )}
+    >
+      <Icon className="h-4 w-4" fill={active ? "currentColor" : "none"} />
+    </button>
+  );
+}
+
+function FooterSwitch({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
+  return (
+    <label className="flex min-h-10 cursor-pointer items-center gap-2 text-navy">
+      <Switch checked={checked} onCheckedChange={onChange} />
+      {label}
+    </label>
   );
 }
 
@@ -699,7 +919,7 @@ function NumberInput({
       type="number"
       inputMode="decimal"
       dir="ltr"
-      className={cn(inp, "text-end")}
+      className={cn(inp, "text-end tabular-nums")}
       value={value ?? ""}
       onChange={(e) => onChange(num(e.target.value))}
       {...rest}
@@ -708,22 +928,30 @@ function NumberInput({
 }
 
 function StockBadge({ p }: { p: Product }) {
+  const base =
+    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs whitespace-nowrap";
+  const dot = (c: string) => <span aria-hidden className={cn("h-1.5 w-1.5 rounded-full", c)} />;
   if (p.availability === "unavailable")
-    return <span className="bg-muted px-2 py-0.5 text-xs text-muted-foreground">غير متوفر</span>;
+    return (
+      <span className={cn(base, "bg-muted text-muted-foreground")}>
+        {dot("bg-muted-foreground/60")}غير متوفر
+      </span>
+    );
   if (p.availability === "made_to_order")
-    return <span className="bg-gold/15 px-2 py-0.5 text-xs text-navy">حسب الطلب</span>;
+    return <span className={cn(base, "bg-gold/15 text-navy")}>{dot("bg-gold")}حسب الطلب</span>;
   if (p.stock <= 0)
     return (
-      <span className="bg-destructive/10 px-2 py-0.5 text-xs text-destructive">نفد المخزون</span>
+      <span className={cn(base, "bg-destructive/10 text-destructive")}>
+        {dot("bg-destructive")}نفد المخزون
+      </span>
     );
+  const low = p.stock <= LOW_STOCK;
   return (
     <span
-      className={cn(
-        "px-2 py-0.5 text-xs",
-        p.stock <= LOW_STOCK ? "bg-destructive/10 text-destructive" : "bg-navy/5 text-navy",
-      )}
+      className={cn(base, low ? "bg-destructive/10 text-destructive" : "bg-navy/[0.06] text-navy")}
     >
-      {p.stock} قطعة
+      {dot(low ? "bg-destructive" : "bg-navy/60")}
+      <span className="tabular-nums">{count.format(p.stock)}</span> قطعة
     </span>
   );
 }
@@ -753,20 +981,20 @@ function SizesEditor({
   return (
     <div>
       <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
-        اختياري. عند إضافة مقاسات يجب على العميل اختيار مقاس قبل الإضافة للسلة. اترك السعر فارغاً
-        ليُستخدم سعر المنتج{basePrice ? ` (${basePrice})` : ""}.
+        اختياري. عند إضافة مقاسات يختار العميل مقاساً قبل الإضافة للسلة. اترك السعر فارغاً ليُستخدم
+        سعر المنتج{basePrice ? ` (${basePrice})` : ""}.
       </p>
       {sizes.length > 0 && (
         <ul className="mb-3 space-y-2">
           {sizes.map((s, i) => (
             <li key={i} className="flex items-start gap-2">
-              <div className="flex shrink-0 flex-col pt-1">
+              <div className="mt-1 flex shrink-0 flex-col">
                 <button
                   type="button"
                   onClick={() => move(i, -1)}
                   disabled={i === 0}
-                  aria-label="تقديم"
-                  className="text-muted-foreground hover:text-navy disabled:opacity-25"
+                  aria-label={`تقديم المقاس ${i + 1}`}
+                  className="flex h-5 w-8 items-center justify-center rounded text-muted-foreground hover:bg-navy/5 hover:text-navy disabled:opacity-25"
                 >
                   <ChevronUp className="h-4 w-4" />
                 </button>
@@ -774,13 +1002,13 @@ function SizesEditor({
                   type="button"
                   onClick={() => move(i, 1)}
                   disabled={i === sizes.length - 1}
-                  aria-label="تأخير"
-                  className="text-muted-foreground hover:text-navy disabled:opacity-25"
+                  aria-label={`تأخير المقاس ${i + 1}`}
+                  className="flex h-5 w-8 items-center justify-center rounded text-muted-foreground hover:bg-navy/5 hover:text-navy disabled:opacity-25"
                 >
                   <ChevronDown className="h-4 w-4" />
                 </button>
               </div>
-              <div className="grid flex-1 grid-cols-[1fr_9rem] gap-2">
+              <div className="grid flex-1 grid-cols-[1fr_8.5rem] gap-2">
                 <div>
                   <input
                     className={cn(
@@ -792,6 +1020,7 @@ function SizesEditor({
                     placeholder="مثال: ١٦٠×٢٠٠ سم"
                     maxLength={60}
                     aria-label={`اسم المقاس ${i + 1}`}
+                    aria-invalid={duplicate(i) || !s.label.trim()}
                   />
                   {duplicate(i) && (
                     <span className="mt-1 block text-xs text-destructive">مقاس مكرر</span>
@@ -808,8 +1037,8 @@ function SizesEditor({
               <button
                 type="button"
                 onClick={() => onChange(sizes.filter((_, j) => j !== i))}
-                aria-label="حذف المقاس"
-                className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                aria-label={`حذف المقاس ${i + 1}`}
+                className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -820,40 +1049,11 @@ function SizesEditor({
       <Button
         type="button"
         variant="outline"
-        size="sm"
         onClick={() => onChange([...sizes, { label: "", price: null }])}
-        className="gap-2"
+        className="h-10 gap-2"
       >
         <Ruler className="h-4 w-4" /> إضافة مقاس
       </Button>
     </div>
-  );
-}
-
-function IconBtn({
-  label,
-  danger,
-  onClick,
-  children,
-}: {
-  label: string;
-  danger?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className={cn(
-        "flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors",
-        danger
-          ? "hover:bg-destructive/10 hover:text-destructive"
-          : "hover:bg-gold/15 hover:text-navy",
-      )}
-    >
-      {children}
-    </button>
   );
 }

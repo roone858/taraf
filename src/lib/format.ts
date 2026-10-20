@@ -1,12 +1,17 @@
-/** Supported store currencies: code → [short price label, full Arabic name]. */
-export const CURRENCIES: Record<string, [string, string]> = {
-  EGP: ["ج.م", "جنيه مصري"],
-  SAR: ["ر.س", "ريال سعودي"],
+/**
+ * Supported store currencies: code → [symbol shown on the site, plain-text label, full Arabic name].
+ * The riyal sign (U+20C1) renders on the site via the bundled "Saudi Riyal" font; plain text that
+ * leaves the site (WhatsApp messages) uses the text label, since recipients' phones may lack the glyph.
+ */
+export const CURRENCIES: Record<string, [symbol: string, text: string, name: string]> = {
+  EGP: ["ج.م", "ج.م", "جنيه مصري"],
+  SAR: ["⃁", "ر.س", "ريال سعودي"],
 };
 
-export function formatPrice(value: number, currency = "EGP") {
+export function formatPrice(value: number, currency = "EGP", opts: { plain?: boolean } = {}) {
   const n = new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 2 }).format(value);
-  const label = CURRENCIES[currency]?.[0] ?? currency;
+  const c = CURRENCIES[currency];
+  const label = c ? (opts.plain ? c[1] : c[0]) : currency;
   return `${n} ${label}`;
 }
 

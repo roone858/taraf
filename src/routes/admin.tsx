@@ -15,8 +15,14 @@ import {
   Package,
   Settings,
   X,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Loader2,
+  ShieldAlert,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -42,7 +48,9 @@ function AdminLayout() {
   const [email, setEmail] = useState<string>();
 
   const check = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return setState("signed_out");
     setEmail(user.email);
     const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
@@ -57,13 +65,39 @@ function AdminLayout() {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  if (state === "loading") return <div className="min-h-screen bg-silk" />;
+  if (state === "loading")
+    return (
+      <div
+        className="flex min-h-screen flex-col items-center justify-center gap-6 bg-silk"
+        aria-busy="true"
+        aria-label="جارٍ التحقق من الدخول"
+      >
+        <Logo className="h-12 opacity-90" />
+        <Loader2 className="h-5 w-5 animate-spin text-gold" />
+      </div>
+    );
   if (state === "signed_out") return <AdminLogin />;
   if (state === "forbidden")
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-silk text-cream">
-        <p>الحساب {email} لا يملك صلاحية الإدارة.</p>
-        <Button variant="ghostGold" onClick={() => supabase.auth.signOut()}>تسجيل الخروج</Button>
+      <div className="flex min-h-screen items-center justify-center bg-silk px-5">
+        <div className="w-full max-w-sm rounded-xl border hairline bg-ink/40 p-8 text-center text-cream">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gold/15 text-gold">
+            <ShieldAlert className="h-5 w-5" />
+          </span>
+          <h1 className="mt-5 font-display text-2xl">لا تملك صلاحية الإدارة</h1>
+          <p className="mt-3 text-sm leading-relaxed text-cream/75">
+            الحساب <bdi className="text-cream">{email}</bdi> مسجّل، لكنه ليس حساب مدير. سجّل الدخول
+            بحساب المدير أو اطلب من صاحب المتجر منحك الصلاحية.
+          </p>
+          <div className="mt-6 flex flex-col gap-2">
+            <Button variant="gold" className="h-11" onClick={() => supabase.auth.signOut()}>
+              تسجيل الخروج والدخول بحساب آخر
+            </Button>
+            <Link to="/" className="py-2 text-sm text-cream/70 hover:text-cream">
+              العودة إلى المتجر
+            </Link>
+          </div>
+        </div>
       </div>
     );
 
@@ -78,7 +112,10 @@ const NAV_GROUPS = [
       { to: "/admin/visitors", label: "الزيارات", Icon: BarChart3 },
     ],
   },
-  { title: "المبيعات", items: [{ to: "/admin/orders", label: "الطلبات", Icon: ClipboardList, badge: "newOrders" }] },
+  {
+    title: "المبيعات",
+    items: [{ to: "/admin/orders", label: "الطلبات", Icon: ClipboardList, badge: "newOrders" }],
+  },
   {
     title: "الكتالوج",
     items: [
@@ -134,11 +171,17 @@ function AdminShell({ email }: { email: string | undefined }) {
           aria-label="القائمة"
         >
           <Menu className="h-6 w-6" />
-          {newOrders > 0 && <span className="absolute top-1.5 end-1.5 h-2.5 w-2.5 rounded-full bg-gold" />}
+          {newOrders > 0 && (
+            <span className="absolute top-1.5 end-1.5 h-2.5 w-2.5 rounded-full bg-gold" />
+          )}
         </button>
       </header>
       <Sheet open={menu} onOpenChange={setMenu}>
-        <SheetContent side="right" dir="rtl" className="flex w-72 border-s-0 bg-silk p-0 text-cream [&>button]:hidden">
+        <SheetContent
+          side="right"
+          dir="rtl"
+          className="flex w-72 border-s-0 bg-silk p-0 text-cream [&>button]:hidden"
+        >
           <SheetTitle className="sr-only">القائمة</SheetTitle>
           <SidebarBody email={email} newOrders={newOrders} onClose={() => setMenu(false)} />
         </SheetContent>
@@ -251,8 +294,9 @@ function AdminLogin() {
   const [mode, setMode] = useState<"in" | "up">("in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [msg, setMsg] = useState<string>();
+  const [msg, setMsg] = useState<{ tone: "error" | "info"; text: string }>();
   const [busy, setBusy] = useState(false);
+  const [show, setShow] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -260,28 +304,114 @@ function AdminLogin() {
     setMsg(undefined);
     if (mode === "in") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setMsg("بيانات الدخول غير صحيحة");
+      if (error) setMsg({ tone: "error", text: "البريد أو كلمة المرور غير صحيحة." });
     } else {
-      const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/admin` } });
-      setMsg(error ? error.message : "تم إنشاء الحساب. تحقق من بريدك لتأكيده ثم سجّل الدخول.");
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/admin` },
+      });
+      setMsg(
+        error
+          ? { tone: "error", text: error.message }
+          : { tone: "info", text: "تم إنشاء الحساب. افتح الرابط في بريدك لتأكيده ثم سجّل الدخول." },
+      );
     }
     setBusy(false);
   };
 
-  const input = "mt-2 h-11 w-full border border-gold/30 bg-ink px-3 text-cream focus:outline-none focus:border-gold";
+  const input =
+    "mt-1.5 h-11 w-full rounded-lg border border-cream/15 bg-ink/60 px-3 text-cream transition-colors placeholder:text-cream/30 hover:border-cream/30 focus:border-gold focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/30";
   return (
-    <div className="flex min-h-screen items-center justify-center bg-silk px-5">
-      <form onSubmit={submit} className="w-full max-w-sm border hairline p-8">
-        <Logo />
-        <h1 className="mt-8 font-display text-3xl text-cream">{mode === "in" ? "دخول الإدارة" : "إنشاء حساب"}</h1>
-        <label className="mt-6 block text-sm text-cream/80">البريد الإلكتروني<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={input} dir="ltr" /></label>
-        <label className="mt-4 block text-sm text-cream/80">كلمة المرور<input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} className={input} dir="ltr" /></label>
-        {msg && <p className="mt-4 text-sm text-gold">{msg}</p>}
-        <Button type="submit" variant="gold" disabled={busy} className="mt-6 h-11 w-full">{mode === "in" ? "دخول" : "إنشاء"}</Button>
-        <button type="button" onClick={() => setMode(mode === "in" ? "up" : "in")} className="mt-4 w-full text-xs text-cream/60 hover:text-gold">
-          {mode === "in" ? "ليس لديك حساب؟ إنشاء حساب" : "لديك حساب؟ تسجيل الدخول"}
-        </button>
-      </form>
+    <div className="flex min-h-screen items-center justify-center bg-silk px-5 py-10">
+      <div className="w-full max-w-sm">
+        <form
+          onSubmit={submit}
+          className="rounded-xl border hairline bg-ink/40 p-7 shadow-[0_24px_48px_-24px_oklch(0.19_0.03_260/0.6)] sm:p-8"
+          noValidate={false}
+        >
+          <Logo className="h-11" />
+          <h1 className="mt-8 font-display text-3xl text-cream">
+            {mode === "in" ? "دخول الإدارة" : "إنشاء حساب"}
+          </h1>
+          <p className="mt-1.5 text-sm text-cream/60">
+            {mode === "in" ? "سجّل الدخول لإدارة المتجر." : "أول حساب يُنشأ يصبح حساب المدير."}
+          </p>
+
+          <label className="mt-7 block text-sm text-cream/80">
+            البريد الإلكتروني
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={input}
+              dir="ltr"
+            />
+          </label>
+          <label className="mt-4 block text-sm text-cream/80">
+            كلمة المرور
+            <span className="relative mt-1.5 block" dir="ltr">
+              <input
+                type={show ? "text" : "password"}
+                required
+                minLength={8}
+                autoComplete={mode === "in" ? "current-password" : "new-password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={cn(input, "mt-0 pe-11")}
+              />
+              <button
+                type="button"
+                onClick={() => setShow((v) => !v)}
+                aria-label={show ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                aria-pressed={show}
+                className="absolute top-1/2 right-1 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-cream/60 transition-colors hover:text-cream"
+              >
+                {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </span>
+            {mode === "up" && (
+              <span className="mt-1.5 block text-xs text-cream/50">٨ أحرف على الأقل.</span>
+            )}
+          </label>
+
+          <div aria-live="polite">
+            {msg && (
+              <p
+                className={cn(
+                  "mt-4 rounded-lg px-3 py-2.5 text-sm",
+                  msg.tone === "error" ? "bg-destructive/20 text-cream" : "bg-gold/15 text-cream",
+                )}
+              >
+                {msg.text}
+              </p>
+            )}
+          </div>
+
+          <Button type="submit" variant="gold" disabled={busy} className="mt-6 h-11 w-full gap-2">
+            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+            {mode === "in" ? "دخول" : "إنشاء الحساب"}
+          </Button>
+          <button
+            type="button"
+            onClick={() => {
+              setMode(mode === "in" ? "up" : "in");
+              setMsg(undefined);
+            }}
+            className="mt-3 w-full rounded-md py-2 text-sm text-cream/70 transition-colors hover:text-cream"
+          >
+            {mode === "in" ? "ليس لديك حساب؟ إنشاء حساب" : "لديك حساب؟ تسجيل الدخول"}
+          </button>
+        </form>
+        <Link
+          to="/"
+          className="mt-5 flex items-center justify-center gap-1.5 text-sm text-cream/60 transition-colors hover:text-cream"
+        >
+          <ArrowRight className="h-4 w-4" /> العودة إلى المتجر
+        </Link>
+      </div>
     </div>
   );
 }

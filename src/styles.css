@@ -4,9 +4,30 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Saudi riyal sign (U+20C1, Unicode 17). Few system fonts have it yet, so it's served from a tiny
+   OFL font (public/fonts/saudi-riyal, see OFL-LICENSE.txt). `unicode-range` limits it to that one
+   character; listed first in the stacks below, it never affects any other glyph. */
+@font-face {
+  font-family: "Saudi Riyal";
+  src: url("/fonts/saudi-riyal/saudi-riyal-regular.woff2") format("woff2");
+  font-weight: 100 500;
+  /* The glyph is drawn small relative to Arabic numerals; enlarge only this font */
+  size-adjust: 120%;
+  font-display: swap;
+  unicode-range: U+20C1;
+}
+@font-face {
+  font-family: "Saudi Riyal";
+  src: url("/fonts/saudi-riyal/saudi-riyal-bold.woff2") format("woff2");
+  font-weight: 600 900;
+  size-adjust: 120%;
+  font-display: swap;
+  unicode-range: U+20C1;
+}
+
 @theme inline {
-  --font-display: "Cormorant Garamond", "Amiri", serif;
-  --font-sans: "El Messiri", serif;
+  --font-display: "Saudi Riyal", "Cormorant Garamond", "Amiri", serif;
+  --font-sans: "Saudi Riyal", "El Messiri", serif;
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
   --radius-lg: var(--radius);
