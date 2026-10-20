@@ -3,15 +3,19 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, Menu, Search, ShoppingBag, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Logo } from "./Logo";
+import { WhatsappIcon } from "./BrandIcons";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useCart } from "@/lib/cart";
-import { categoriesQuery } from "@/lib/data";
+import { categoriesQuery, settingsQuery } from "@/lib/data";
+import { normalizeWhatsappNumber } from "@/lib/whatsapp";
 import { useSiteMenu } from "@/lib/site-menu";
 import { cn } from "@/lib/utils";
 
 export function SiteHeader() {
   const { count, setOpen } = useCart();
   const { data: cats } = useQuery(categoriesQuery);
+  const { data: s } = useQuery(settingsQuery);
+  const wa = normalizeWhatsappNumber(s?.whatsapp_number);
   const loc = useLocation();
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
@@ -42,7 +46,13 @@ export function SiteHeader() {
       )}
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-10">
-        <button className="text-cream lg:hidden" onClick={() => setMenu(true)} aria-label="القائمة">
+        <button
+          type="button"
+          className="-ms-2 flex h-11 w-11 items-center justify-center text-cream transition-colors hover:text-gold lg:hidden"
+          onClick={() => setMenu(true)}
+          aria-label="القائمة"
+          aria-expanded={menu}
+        >
           <Menu className="h-6 w-6" />
         </button>
         <Link to="/" aria-label="الرئيسية">
@@ -111,8 +121,9 @@ export function SiteHeader() {
               <Logo className="h-10" />
             </Link>
             <button
+              type="button"
               onClick={() => setMenu(false)}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-gold/40 text-cream transition-colors hover:border-gold hover:text-gold"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-gold/40 text-cream transition-colors hover:border-gold hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
               aria-label="إغلاق"
             >
               <X className="h-5 w-5" />
@@ -121,10 +132,31 @@ export function SiteHeader() {
 
           {/* Close on any link tap — category links keep the same pathname, so the pathname effect won't fire */}
           <nav
-            className="flex-1 overflow-y-auto px-5 py-8"
+            aria-label="القائمة الرئيسية"
+            className="flex-1 overflow-y-auto px-5 pt-5 pb-8"
             onClick={(e) => (e.target as HTMLElement).closest("a") && setMenu(false)}
           >
-            <ul className="space-y-1">
+            <form
+              role="search"
+              onSubmit={(e) => {
+                submit(e);
+                setMenu(false);
+              }}
+              className="relative"
+            >
+              <Search className="pointer-events-none absolute top-1/2 start-3.5 h-4 w-4 -translate-y-1/2 text-gold" />
+              <input
+                type="search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="ابحث عن قطعة..."
+                aria-label="بحث في المتجر"
+                enterKeyHint="search"
+                className="h-12 w-full border border-cream/15 bg-cream/5 ps-10 pe-3 text-cream transition-colors placeholder:text-cream/50 focus:border-gold focus:bg-cream/10 focus:outline-none [&::-webkit-search-cancel-button]:hidden"
+              />
+            </form>
+
+            <ul className="mt-4">
               {[
                 { to: "/", label: "الرئيسية", exact: true },
                 { to: "/shop", label: "المتجر", exact: false },
@@ -133,38 +165,53 @@ export function SiteHeader() {
                   <Link
                     to={to}
                     activeOptions={{ exact, includeSearch: false }}
-                    className="flex items-center justify-between border-b border-cream/10 py-4 font-display text-2xl text-cream transition-colors hover:text-gold"
-                    activeProps={{ className: "!text-gold" }}
+                    className="group flex items-center justify-between border-b border-cream/10 py-4 font-display text-2xl text-cream transition-colors hover:text-gold"
+                    activeProps={{ className: "!text-gold", "aria-current": "page" }}
                   >
                     {label}
-                    <ChevronLeft className="h-5 w-5 text-gold/60" />
+                    <ChevronLeft className="h-5 w-5 text-gold/60 transition-transform group-hover:-translate-x-1" />
                   </Link>
                 </li>
               ))}
             </ul>
 
             {!!cats?.length && (
-              <>
-                <p className="eyebrow mt-10 mb-4">المجموعات</p>
-                <ul className="grid grid-cols-2 gap-2">
+              <section aria-labelledby="menu-cats" className="mt-8">
+                <h3 id="menu-cats" className="mb-3 font-sans text-sm text-cream/60">
+                  المجموعات
+                </h3>
+                <ul className="space-y-1">
                   {cats.map((c) => (
                     <li key={c.id}>
                       <Link
                         to="/shop"
                         search={{ cat: c.slug }}
-                        className="block border border-cream/10 px-3 py-3 text-sm text-cream/80 transition-colors hover:border-gold/60 hover:text-gold"
+                        className="group flex items-center gap-3 p-2 text-cream/85 transition-colors hover:bg-cream/5 hover:text-gold"
+                        activeProps={{ className: "bg-cream/5 !text-gold" }}
                       >
-                        {c.name}
+                        <span className="h-12 w-12 shrink-0 overflow-hidden bg-ink">
+                          {c.image_url && (
+                            <img
+                              src={c.image_url}
+                              alt=""
+                              loading="lazy"
+                              className="h-full w-full object-cover opacity-90"
+                            />
+                          )}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">{c.name}</span>
+                        <ChevronLeft className="h-4 w-4 shrink-0 text-gold/50 transition-transform group-hover:-translate-x-1" />
                       </Link>
                     </li>
                   ))}
                 </ul>
-              </>
+              </section>
             )}
           </nav>
 
-          <div className="shrink-0 border-t hairline p-5">
+          <div className="shrink-0 space-y-2.5 border-t hairline p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
             <button
+              type="button"
               onClick={() => {
                 setMenu(false);
                 setOpen(true);
@@ -172,8 +219,23 @@ export function SiteHeader() {
               className="flex h-12 w-full items-center justify-center gap-2 bg-gold text-sm text-ink transition-colors hover:bg-cream"
             >
               <ShoppingBag className="h-4 w-4" />
-              سلة التسوق{count > 0 && ` (${count})`}
+              سلة التسوق
+              {count > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 text-[0.65rem] text-cream tabular-nums">
+                  {count}
+                </span>
+              )}
             </button>
+            {wa && (
+              <a
+                href={`https://wa.me/${wa}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-12 w-full items-center justify-center gap-2 border border-gold/50 text-sm text-gold transition-colors hover:border-gold hover:bg-gold/10"
+              >
+                <WhatsappIcon className="h-4 w-4" /> تواصل معنا عبر واتساب
+              </a>
+            )}
           </div>
         </SheetContent>
       </Sheet>

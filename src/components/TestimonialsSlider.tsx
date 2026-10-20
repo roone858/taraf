@@ -88,30 +88,31 @@ export function TestimonialsSlider({
 
   return (
     <section
-      className="overflow-hidden bg-ivory py-24 md:py-28"
+      className="overflow-hidden bg-ivory py-16 md:py-24"
       aria-labelledby="testimonials-title"
     >
       <div className="mx-auto max-w-7xl px-5 lg:px-10">
-        {/* Header */}
-        <div className="mb-12 flex flex-wrap items-end justify-between gap-8">
-          <div>
-            {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+        {/* Header: title with its admin-managed lead, then the rating summary and arrows */}
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-x-8 gap-y-6 md:mb-12">
+          <div className="min-w-0">
             <h2
               id="testimonials-title"
-              className="mt-3 font-display text-4xl text-navy md:text-5xl"
+              className="font-display text-3xl text-balance text-navy md:text-5xl"
             >
               {title}
             </h2>
+            {eyebrow && <p className="mt-3 text-muted-foreground">{eyebrow}</p>}
           </div>
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3 border-s-2 border-gold ps-4">
-              <span className="font-display text-4xl leading-none text-navy">
+            <div className="flex items-center gap-3">
+              <span className="font-display text-4xl leading-none text-navy tabular-nums">
                 {num.format(avg)}
               </span>
+              <span aria-hidden className="h-9 w-px bg-gold/50" />
               <div>
                 <Stars value={avg} />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  متوسط {items.length} {items.length === 1 ? "تقييم" : "تقييمات"}
+                  متوسط {num.format(items.length)} {items.length === 1 ? "تقييم" : "تقييمات"}
                 </p>
               </div>
             </div>
@@ -163,7 +164,7 @@ export function TestimonialsSlider({
                     aria-label={`${i + 1} من ${items.length}`}
                     className="min-w-0 shrink-0 grow-0 basis-[88%] ps-5 sm:basis-1/2 lg:basis-1/3"
                   >
-                    <figure className="group relative flex h-full flex-col bg-cream p-7 transition-shadow duration-300 hover:shadow-[0_18px_40px_-24px_oklch(0.19_0.03_260/0.45)] md:p-8">
+                    <figure className="group relative flex h-full flex-col border border-transparent bg-cream p-6 transition-[box-shadow,border-color] duration-300 hover:border-gold/30 hover:shadow-[0_18px_40px_-24px_oklch(0.19_0.03_260/0.45)] sm:p-7 md:p-8">
                       <Quote
                         className="absolute top-6 end-6 h-10 w-10 text-gold/20 transition-colors group-hover:text-gold/35"
                         aria-hidden
@@ -175,7 +176,7 @@ export function TestimonialsSlider({
                           <button
                             type="button"
                             onClick={() => toggle(t.id)}
-                            className="mt-2 text-xs text-gold underline-offset-4 hover:underline"
+                            className="mt-2 text-xs text-navy underline decoration-gold underline-offset-4 hover:decoration-navy"
                             aria-expanded={open}
                           >
                             {open ? "عرض أقل" : "اقرأ المزيد"}
@@ -184,7 +185,7 @@ export function TestimonialsSlider({
                       </blockquote>
                       <figcaption className="mt-6 flex items-center gap-3 border-t hairline pt-5">
                         <span
-                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gold/50 bg-ivory font-display text-lg text-gold"
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-navy font-display text-lg text-gold"
                           aria-hidden
                         >
                           {t.customer_name.trim().charAt(0)}
@@ -210,7 +211,7 @@ export function TestimonialsSlider({
 
         {/* Dots + mobile arrows */}
         {snaps.length > 1 && (
-          <div className="mt-10 flex items-center justify-center gap-5">
+          <div className="mt-8 flex items-center justify-center gap-5 md:mt-10">
             <div className="md:hidden">
               <NavButton label="السابق" disabled={!canPrev} onClick={() => go("prev")}>
                 <ChevronRight className="h-5 w-5" />
