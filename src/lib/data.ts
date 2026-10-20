@@ -66,6 +66,7 @@ export const featuredQuery = queryOptions({
       .select("*")
       .eq("is_published", true)
       .eq("is_featured", true)
+      .order("sort_order")
       .order("created_at", { ascending: false })
       .limit(8);
     if (error) throw error;
@@ -81,6 +82,7 @@ export const bestsellersQuery = queryOptions({
       .select("*")
       .eq("is_published", true)
       .eq("is_bestseller", true)
+      .order("sort_order")
       .order("updated_at", { ascending: false })
       .limit(8);
     if (error) throw error;

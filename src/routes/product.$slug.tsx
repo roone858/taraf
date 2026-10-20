@@ -92,6 +92,7 @@ function ProductPage() {
         .eq("is_published", true)
         .eq("category_id", p!.category_id!)
         .neq("id", p!.id)
+        .order("sort_order")
         .limit(4);
       return data ?? [];
     },

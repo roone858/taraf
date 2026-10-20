@@ -27,7 +27,7 @@ const PAGE = 12;
 const searchSchema = z.object({
   q: z.string().optional(),
   cat: z.string().optional(),
-  sort: z.enum(["newest", "price_asc", "price_desc"]).optional(),
+  sort: z.enum(["default", "newest", "price_asc", "price_desc"]).optional(),
   min: z.coerce.number().optional(),
   max: z.coerce.number().optional(),
   avail: z.enum(["in_stock", "made_to_order"]).optional(),
@@ -36,6 +36,8 @@ const searchSchema = z.object({
 type ShopSearch = z.infer<typeof searchSchema>;
 
 const SORTS = [
+  // The admin's manual order (Admin → المنتجات)
+  ["default", "ترتيب المتجر"],
   ["newest", "الأحدث"],
   ["price_asc", "السعر: من الأقل"],
   ["price_desc", "السعر: من الأعلى"],
@@ -65,7 +67,8 @@ const shopQuery = (sp: ShopSearch, cats: Category[] | undefined) =>
       if (sp.avail) qb = qb.eq("availability", sp.avail);
       if (sp.sort === "price_asc") qb = qb.order("price", { ascending: true });
       else if (sp.sort === "price_desc") qb = qb.order("price", { ascending: false });
-      else qb = qb.order("created_at", { ascending: false });
+      else if (sp.sort === "newest") qb = qb.order("created_at", { ascending: false });
+      else qb = qb.order("sort_order").order("created_at", { ascending: false });
       const { data, count, error } = await qb.order("id").range(0, page * PAGE - 1);
       if (error) throw error;
       return { rows: data, count: count ?? 0 };
@@ -192,7 +195,7 @@ function Shop() {
     sp.min != null,
     sp.max != null,
     !!sp.avail,
-    !!sp.sort && sp.sort !== "newest",
+    !!sp.sort && sp.sort !== "default",
   ].filter(Boolean).length;
   const clearAll = () => navigate({ search: {}, resetScroll: false });
 
@@ -297,8 +300,10 @@ function Shop() {
             <div className="ms-auto hidden md:block">
               <SelectBox
                 label="ترتيب"
-                value={sp.sort ?? "newest"}
-                onChange={(v) => set({ sort: v as ShopSearch["sort"] })}
+                value={sp.sort ?? "default"}
+                onChange={(v) =>
+                  set({ sort: v === "default" ? undefined : (v as ShopSearch["sort"]) })
+                }
                 options={SORTS}
               />
             </div>
@@ -453,7 +458,11 @@ function Shop() {
           <div className="space-y-7 border-t hairline px-5 py-6 text-sm">
             <SheetGroup title="الترتيب">
               {SORTS.map(([v, l]) => (
-                <Pill key={v} active={(sp.sort ?? "newest") === v} onClick={() => set({ sort: v })}>
+                <Pill
+                  key={v}
+                  active={(sp.sort ?? "default") === v}
+                  onClick={() => set({ sort: v === "default" ? undefined : v })}
+                >
                   {l}
                 </Pill>
               ))}

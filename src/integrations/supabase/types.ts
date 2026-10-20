@@ -212,6 +212,7 @@ export type Database = {
           sizes: Json
           sku: string | null
           slug: string
+          sort_order: number
           stock: number
           updated_at: string
           width_cm: number | null
@@ -239,6 +240,7 @@ export type Database = {
           sizes?: Json
           sku?: string | null
           slug: string
+          sort_order: number
           stock?: number
           updated_at?: string
           width_cm?: number | null
@@ -266,6 +268,7 @@ export type Database = {
           sizes?: Json
           sku?: string | null
           slug?: string
+          sort_order?: number
           stock?: number
           updated_at?: string
           width_cm?: number | null

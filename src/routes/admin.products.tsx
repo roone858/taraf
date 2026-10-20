@@ -50,6 +50,7 @@ import {
   ResultBar,
   SearchInput,
   SectionTitle,
+  ReorderButtons,
   inp,
 } from "@/components/admin/kit";
 import { SeoFields } from "@/components/admin/SeoFields";
@@ -135,6 +136,8 @@ function Products() {
       const { data, error } = await supabase
         .from("products")
         .select("*")
+        // Same order as the storefront: manual position, then newest
+        .order("sort_order")
         .order("created_at", { ascending: false })
         // Tiebreaker: rows sharing a timestamp (e.g. seeded together) would otherwise reshuffle after any update
         .order("id");
@@ -185,6 +188,35 @@ function Products() {
     setCat("");
   };
 
+  const [reordering, setReordering] = useState(false);
+  /**
+   * Swaps a product with its visible neighbour. Works inside any filter (e.g. one category): the two
+   * products trade places in the full list, which is then renumbered in steps of 10.
+   */
+  const move = async (p: Product, dir: -1 | 1) => {
+    const i = rows.findIndex((x) => x.id === p.id);
+    const other = rows[i + dir];
+    if (reordering || !other) return;
+    const order = [...all];
+    const a = order.findIndex((x) => x.id === p.id);
+    const b = order.findIndex((x) => x.id === other.id);
+    [order[a], order[b]] = [order[b]!, order[a]!];
+    const renumbered = order.map((x, idx) => ({ ...x, sort_order: (idx + 1) * 10 }));
+    const changed = renumbered.filter(
+      (x) => all.find((r) => r.id === x.id)?.sort_order !== x.sort_order,
+    );
+    qc.setQueryData<Product[]>(PRODUCTS_KEY, renumbered);
+    setReordering(true);
+    const results = await Promise.all(
+      changed.map((x) =>
+        supabase.from("products").update({ sort_order: x.sort_order }).eq("id", x.id),
+      ),
+    );
+    setReordering(false);
+    if (results.some((r) => r.error)) toast.error("تعذر حفظ الترتيب");
+    refresh();
+  };
+
   const refresh = () =>
     Promise.all(
       [["admin"], ["products"], ["product"], ["shop"]].map((queryKey) =>
@@ -224,7 +256,10 @@ function Products() {
     };
     const { error } = edit.id
       ? await supabase.from("products").update(row).eq("id", edit.id)
-      : await supabase.from("products").insert(row);
+      : // New products start at the top of the store
+        await supabase
+          .from("products")
+          .insert({ ...row, sort_order: Math.min(10, ...all.map((x) => x.sort_order)) - 10 });
     setSaving(false);
     if (error)
       return void toast.error(
@@ -389,7 +424,7 @@ function Products() {
             <>
               {/* Phones: divided list — tap a row to edit; publish toggles in place */}
               <ul className="divide-y divide-navy/[0.07] md:hidden">
-                {rows.map((p) => (
+                {rows.map((p, i) => (
                   <li key={p.id} className="flex items-stretch">
                     <button
                       type="button"
@@ -422,6 +457,15 @@ function Products() {
                         {p.is_published ? "منشور" : "مسودة"}
                       </span>
                     </div>
+                    <div className="flex shrink-0 items-center border-s border-navy/[0.07] px-1">
+                      <ReorderButtons
+                        name={p.name}
+                        first={i === 0}
+                        last={i === rows.length - 1}
+                        disabled={reordering}
+                        onMove={(dir) => move(p, dir)}
+                      />
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -448,7 +492,7 @@ function Products() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-navy/[0.07]">
-                  {rows.map((p) => (
+                  {rows.map((p, i) => (
                     <tr key={p.id} className="transition-colors duration-150 hover:bg-cream/70">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
@@ -507,7 +551,15 @@ function Products() {
                         </div>
                       </td>
                       <td className="px-3 py-3">
-                        <div className="flex justify-end gap-0.5">
+                        <div className="flex items-center justify-end gap-0.5">
+                          <ReorderButtons
+                            name={p.name}
+                            first={i === 0}
+                            last={i === rows.length - 1}
+                            disabled={reordering}
+                            onMove={(dir) => move(p, dir)}
+                          />
+                          <span className="mx-1 h-5 w-px bg-navy/10" aria-hidden />
                           <IconButton label={`تعديل ${p.name}`} onClick={() => setEdit(toDraft(p))}>
                             <Pencil className="h-4 w-4" />
                           </IconButton>
