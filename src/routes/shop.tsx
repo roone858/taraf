@@ -2,7 +2,16 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { Loader2, PackageSearch, Search, SlidersHorizontal, X } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  Loader2,
+  PackageSearch,
+  RotateCw,
+  Search,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { categoriesQuery, settingsQuery } from "@/lib/data";
 import { CURRENCIES } from "@/lib/format";
@@ -35,6 +44,7 @@ const AVAIL = [
   ["made_to_order", "حسب الطلب"],
 ] as const;
 const n = new Intl.NumberFormat("ar-EG");
+const pieces = (count: number) => `${n.format(count)} ${count === 1 ? "قطعة" : "قطع"}`;
 
 export const Route = createFileRoute("/shop")({
   validateSearch: searchSchema,
@@ -127,154 +137,165 @@ function Shop() {
       clear: { avail: undefined },
     },
   ].filter(Boolean) as { key: string; label: string; clear: Partial<ShopSearch> }[];
-  const extraFilters = [sp.min != null, sp.max != null, !!sp.avail].filter(Boolean).length;
+  // Filters that live behind the mobile sheet (sort included, since it moves there on mobile)
+  const sheetFilters = [
+    sp.min != null,
+    sp.max != null,
+    !!sp.avail,
+    !!sp.sort && sp.sort !== "newest",
+  ].filter(Boolean).length;
   const clearAll = () => navigate({ search: {}, resetScroll: false });
 
   return (
     <main className="pt-20">
-      {/* Hero */}
-      <section className="bg-silk px-5 py-16 text-center text-cream md:py-20">
-        <nav aria-label="مسار التصفح" className="text-xs text-cream/60">
-          <Link to="/" className="hover:text-gold">
-            الرئيسية
-          </Link>
-          <span className="mx-2 text-gold/60">/</span>
-          {activeCat ? (
-            <>
-              <Link to="/shop" className="hover:text-gold">
-                المتجر
-              </Link>
-              <span className="mx-2 text-gold/60">/</span>
-              <span className="text-cream/90">{activeCat.name}</span>
-            </>
-          ) : (
-            <span className="text-cream/90">المتجر</span>
+      {/* Compact header: title first, so products start near the fold */}
+      <section className="bg-silk text-cream">
+        <div className="mx-auto max-w-7xl px-5 py-10 md:py-14 lg:px-10">
+          <nav aria-label="مسار التصفح" className="text-sm text-cream/65">
+            <ol className="flex items-center gap-1.5">
+              <li>
+                <Link to="/" className="transition-colors hover:text-gold">
+                  الرئيسية
+                </Link>
+              </li>
+              <ChevronLeft aria-hidden className="h-3.5 w-3.5 text-gold/70" />
+              {activeCat ? (
+                <>
+                  <li>
+                    <Link to="/shop" className="transition-colors hover:text-gold">
+                      المتجر
+                    </Link>
+                  </li>
+                  <ChevronLeft aria-hidden className="h-3.5 w-3.5 text-gold/70" />
+                  <li aria-current="page" className="text-cream">
+                    {activeCat.name}
+                  </li>
+                </>
+              ) : (
+                <li aria-current="page" className="text-cream">
+                  المتجر
+                </li>
+              )}
+            </ol>
+          </nav>
+          <div className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+            <h1 className="font-display text-4xl text-balance md:text-5xl">
+              {activeCat?.name ?? "كل القطع"}
+            </h1>
+            {!isLoading && !error && (
+              <p className="pb-1.5 text-sm text-cream/70">{pieces(total)}</p>
+            )}
+          </div>
+          {activeCat?.description && (
+            <p className="mt-3 max-w-2xl leading-relaxed text-cream/75">{activeCat.description}</p>
           )}
-        </nav>
-        <h1 className="mt-5 font-display text-4xl md:text-5xl">{activeCat?.name ?? "كل القطع"}</h1>
-        {activeCat?.description && (
-          <p className="mx-auto mt-4 max-w-xl text-cream/70">{activeCat.description}</p>
-        )}
-        <div className="mx-auto mt-6 h-px w-16 bg-gold/60" />
+        </div>
       </section>
 
-      {/* Category chips — scroll horizontally on small screens */}
-      <div className="border-b hairline bg-cream">
+      {/* Sticky toolbar: categories, then search / filters / sort */}
+      <div className="sticky top-20 z-20 border-b hairline bg-cream/95 backdrop-blur supports-[backdrop-filter]:bg-cream/85">
         <div className="mx-auto max-w-7xl px-5 lg:px-10">
-          <div className="-mx-5 flex gap-2 overflow-x-auto px-5 py-4 [scrollbar-width:none] lg:mx-0 lg:flex-wrap lg:px-0 [&::-webkit-scrollbar]:hidden">
-            <CatChip active={!sp.cat} onClick={() => set({ cat: undefined })}>
+          <div
+            role="group"
+            aria-label="الفئات"
+            className="-mx-5 flex gap-2 overflow-x-auto border-b border-border/70 px-5 py-3 [scrollbar-width:none] lg:mx-0 lg:px-0 [&::-webkit-scrollbar]:hidden"
+          >
+            <Pill active={!sp.cat} onClick={() => set({ cat: undefined })}>
               الكل
-            </CatChip>
+            </Pill>
             {cats?.map((c) => (
-              <CatChip key={c.id} active={sp.cat === c.slug} onClick={() => set({ cat: c.slug })}>
+              <Pill key={c.id} active={sp.cat === c.slug} onClick={() => set({ cat: c.slug })}>
                 {c.name}
-              </CatChip>
+              </Pill>
             ))}
           </div>
-        </div>
-      </div>
 
-      {/* Sticky toolbar */}
-      <div className="sticky top-20 z-20 border-b hairline bg-cream/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-5 py-3 lg:px-10">
-          <div className="relative min-w-0 flex-1 md:max-w-xs">
-            <Search className="pointer-events-none absolute top-1/2 start-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="ابحث عن قطعة..."
-              aria-label="بحث"
-              className="h-10 w-full border bg-ivory ps-9 pe-9 text-sm focus:border-gold focus:outline-none [&::-webkit-search-cancel-button]:hidden"
-            />
-            {q && (
-              <button
-                onClick={() => setQ("")}
-                aria-label="مسح البحث"
-                className="absolute top-1/2 end-2 flex h-6 w-6 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-navy"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          <div className="flex items-center gap-2 py-3 sm:gap-3">
+            <div className="relative min-w-0 flex-1 md:max-w-xs">
+              <Search className="pointer-events-none absolute top-1/2 start-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="ابحث عن قطعة..."
+                aria-label="بحث"
+                className="h-10 w-full border border-navy/15 bg-ivory ps-9 pe-9 text-sm transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25 [&::-webkit-search-cancel-button]:hidden"
+              />
+              {q && (
+                <button
+                  type="button"
+                  onClick={() => setQ("")}
+                  aria-label="مسح البحث"
+                  className="absolute top-1/2 end-2 flex h-6 w-6 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-navy"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
 
-          {/* Desktop filters */}
-          <div className="hidden items-center gap-3 lg:flex">
-            <PriceRange sp={sp} currency={currencyShort} onApply={set} />
-            <select
-              value={sp.avail ?? ""}
-              onChange={(e) => set({ avail: (e.target.value || undefined) as ShopSearch["avail"] })}
-              className="h-10 border bg-ivory px-3 text-sm focus:border-gold focus:outline-none"
-              aria-label="الحالة"
+            {/* Desktop filters */}
+            <div className="hidden items-center gap-3 lg:flex">
+              <PriceRange sp={sp} currency={currencyShort} onApply={set} />
+              <SelectBox
+                label="الحالة"
+                value={sp.avail ?? ""}
+                onChange={(v) => set({ avail: (v || undefined) as ShopSearch["avail"] })}
+                options={AVAIL}
+              />
+            </div>
+
+            <div className="ms-auto hidden md:block">
+              <SelectBox
+                label="ترتيب"
+                value={sp.sort ?? "newest"}
+                onChange={(v) => set({ sort: v as ShopSearch["sort"] })}
+                options={SORTS}
+              />
+            </div>
+
+            {/* Below lg, everything except search lives in the sheet */}
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(true)}
+              className="flex h-10 shrink-0 items-center gap-2 border border-navy/15 bg-ivory px-3 text-sm text-navy transition-colors hover:border-gold lg:hidden"
             >
-              {AVAIL.map(([v, l]) => (
-                <option key={v} value={v}>
-                  {l}
-                </option>
-              ))}
-            </select>
+              <SlidersHorizontal className="h-4 w-4" />
+              فلترة
+              {sheetFilters > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-navy px-1 text-[0.65rem] text-cream tabular-nums">
+                  {n.format(sheetFilters)}
+                </span>
+              )}
+            </button>
           </div>
-
-          {/* Mobile filters button */}
-          <button
-            onClick={() => setFiltersOpen(true)}
-            className="flex h-10 shrink-0 items-center gap-2 border bg-ivory px-3 text-sm text-navy lg:hidden"
-          >
-            <SlidersHorizontal className="h-4 w-4" />
-            فلترة
-            {extraFilters > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-[0.65rem] text-ink">
-                {extraFilters}
-              </span>
-            )}
-          </button>
-
-          <select
-            value={sp.sort ?? "newest"}
-            onChange={(e) => set({ sort: e.target.value as ShopSearch["sort"] })}
-            className="ms-auto h-10 shrink-0 border bg-ivory px-3 text-sm focus:border-gold focus:outline-none"
-            aria-label="ترتيب"
-          >
-            {SORTS.map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </select>
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-5 pt-8 pb-20 lg:px-10">
+      <div className="mx-auto max-w-7xl px-5 pt-6 pb-20 lg:px-10 lg:pt-8">
         {/* Results summary + active filters */}
-        <div className="mb-10 flex flex-wrap items-center gap-x-4 gap-y-3 text-sm">
-          <p className="text-muted-foreground" aria-live="polite">
-            {isLoading ? (
-              "جارٍ التحميل..."
-            ) : (
-              <>
-                <span className="text-navy">{n.format(total)}</span> {total === 1 ? "قطعة" : "قطع"}
-              </>
-            )}
-            {isFetching && !isLoading && (
-              <Loader2 className="ms-2 inline h-3.5 w-3.5 animate-spin text-gold" />
-            )}
+        <div className="mb-8 flex min-h-8 flex-wrap items-center gap-x-4 gap-y-3 text-sm lg:mb-10">
+          <p className="flex items-center gap-2 text-muted-foreground" aria-live="polite">
+            {isLoading ? "جارٍ التحميل..." : <span className="text-navy">{pieces(total)}</span>}
+            {isFetching && !isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-gold" />}
           </p>
           {chips.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
               {chips.map((c) => (
                 <button
                   key={c.key}
+                  type="button"
                   onClick={() => set(c.clear)}
-                  className="flex items-center gap-1.5 border border-gold/40 bg-gold/10 px-3 py-1 text-xs text-navy transition-colors hover:border-gold"
+                  className="flex h-8 items-center gap-1.5 border border-navy/15 bg-ivory px-3 text-xs text-navy transition-colors hover:border-gold"
                   aria-label={`إزالة فلتر ${c.label}`}
                 >
-                  {c.label} <X className="h-3 w-3" />
+                  {c.label} <X className="h-3 w-3 text-muted-foreground" />
                 </button>
               ))}
               {chips.length > 1 && (
                 <button
+                  type="button"
                   onClick={clearAll}
-                  className="text-xs text-gold underline-offset-4 hover:underline"
+                  className="px-1 text-xs text-navy underline underline-offset-4 decoration-gold hover:decoration-navy"
                 >
                   مسح الكل
                 </button>
@@ -284,10 +305,11 @@ function Shop() {
         </div>
 
         {error ? (
-          <div className="py-24 text-center">
-            <p className="text-destructive">تعذر تحميل المنتجات.</p>
-            <Button variant="outline" onClick={() => refetch()} className="mt-4">
-              إعادة المحاولة
+          <div className="mx-auto max-w-md py-24 text-center">
+            <p className="font-display text-2xl text-navy">تعذر تحميل المنتجات</p>
+            <p className="mt-2 text-sm text-muted-foreground">تحقق من الاتصال ثم أعد المحاولة.</p>
+            <Button variant="outline" onClick={() => refetch()} className="mt-6 gap-2">
+              <RotateCw className="h-4 w-4" /> إعادة المحاولة
             </Button>
           </div>
         ) : isLoading ? (
@@ -302,7 +324,7 @@ function Shop() {
           </Grid>
         ) : rows.length === 0 ? (
           <div className="mx-auto max-w-md py-24 text-center">
-            <PackageSearch className="mx-auto h-12 w-12 text-gold/70" />
+            <PackageSearch className="mx-auto h-12 w-12 text-gold" />
             <p className="mt-5 font-display text-3xl text-navy">لا توجد قطع مطابقة</p>
             <p className="mt-3 text-sm text-muted-foreground">
               جرّب كلمة بحث أخرى أو وسّع نطاق السعر.
@@ -327,12 +349,12 @@ function Shop() {
             </Grid>
             {rows.length < total && (
               <div className="mx-auto mt-16 max-w-xs text-center">
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground tabular-nums">
                   عرض {n.format(rows.length)} من {n.format(total)}
                 </p>
                 <div className="mt-3 h-0.5 bg-muted">
                   <div
-                    className="h-full bg-gold transition-all"
+                    className="h-full bg-gold transition-[width] duration-500"
                     style={{ width: `${(rows.length / total) * 100}%` }}
                   />
                 </div>
@@ -346,7 +368,7 @@ function Shop() {
                       replace: true,
                     })
                   }
-                  className="mt-6 w-full gap-2"
+                  className="mt-6 h-11 w-full gap-2"
                 >
                   {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
                   عرض المزيد
@@ -359,49 +381,60 @@ function Shop() {
 
       <FaqSection />
 
-      {/* Mobile filters sheet */}
+      {/* Mobile/tablet filters sheet */}
       <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <SheetContent side="bottom" dir="rtl" className="bg-cream p-0 [&>button]:hidden">
-          <div className="flex items-center justify-between border-b px-5 py-4">
-            <SheetTitle className="font-display text-xl text-navy">فلترة النتائج</SheetTitle>
+        <SheetContent
+          side="bottom"
+          dir="rtl"
+          className="max-h-[85dvh] overflow-y-auto bg-cream p-0 [&>button]:hidden"
+        >
+          <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-navy/15" aria-hidden />
+          <div className="flex items-center justify-between px-5 pt-3 pb-4">
+            <SheetTitle className="font-display text-xl text-navy">فلترة وترتيب</SheetTitle>
             <button
+              type="button"
               onClick={() => setFiltersOpen(false)}
               aria-label="إغلاق"
-              className="text-muted-foreground"
+              className="-me-2 flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-navy"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
-          <div className="space-y-6 px-5 py-6 text-sm">
-            <div>
-              <p className="mb-2 text-muted-foreground">السعر ({currencyShort})</p>
+          <div className="space-y-7 border-t hairline px-5 py-6 text-sm">
+            <SheetGroup title="الترتيب">
+              {SORTS.map(([v, l]) => (
+                <Pill key={v} active={(sp.sort ?? "newest") === v} onClick={() => set({ sort: v })}>
+                  {l}
+                </Pill>
+              ))}
+            </SheetGroup>
+            <SheetGroup title={`السعر (${currencyShort})`}>
               <PriceRange sp={sp} currency={currencyShort} onApply={set} wide />
-            </div>
-            <div>
-              <p className="mb-2 text-muted-foreground">الحالة</p>
-              <div className="flex flex-wrap gap-2">
-                {AVAIL.map(([v, l]) => (
-                  <CatChip
-                    key={v}
-                    active={(sp.avail ?? "") === v}
-                    onClick={() => set({ avail: (v || undefined) as ShopSearch["avail"] })}
-                  >
-                    {l}
-                  </CatChip>
-                ))}
-              </div>
-            </div>
+            </SheetGroup>
+            <SheetGroup title="الحالة">
+              {AVAIL.map(([v, l]) => (
+                <Pill
+                  key={v}
+                  active={(sp.avail ?? "") === v}
+                  onClick={() => set({ avail: (v || undefined) as ShopSearch["avail"] })}
+                >
+                  {l}
+                </Pill>
+              ))}
+            </SheetGroup>
           </div>
-          <div className="flex gap-3 border-t px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
+          <div className="sticky bottom-0 flex gap-3 border-t hairline bg-cream px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
             <Button
               variant="outline"
-              className="flex-1"
-              onClick={() => set({ min: undefined, max: undefined, avail: undefined })}
+              className="h-11 flex-1"
+              onClick={() =>
+                set({ min: undefined, max: undefined, avail: undefined, sort: undefined })
+              }
             >
               إعادة ضبط
             </Button>
-            <Button className="flex-1" onClick={() => setFiltersOpen(false)}>
-              عرض {n.format(total)} {total === 1 ? "قطعة" : "قطع"}
+            <Button className="h-11 flex-[2]" onClick={() => setFiltersOpen(false)}>
+              عرض {pieces(total)}
             </Button>
           </div>
         </SheetContent>
@@ -423,7 +456,7 @@ function Grid({ className, children }: { className?: string; children: React.Rea
   );
 }
 
-function CatChip({
+function Pill({
   active,
   onClick,
   children,
@@ -434,17 +467,61 @@ function CatChip({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "shrink-0 whitespace-nowrap border px-4 py-2 text-sm transition-colors",
+        "h-9 shrink-0 whitespace-nowrap border px-4 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold",
         active
           ? "border-navy bg-navy text-cream"
-          : "border-gold/30 bg-ivory text-navy hover:border-gold",
+          : "border-navy/15 bg-ivory text-navy hover:border-gold",
       )}
     >
       {children}
     </button>
+  );
+}
+
+function SheetGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <fieldset>
+      <legend className="mb-3 text-navy">{title}</legend>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </fieldset>
+  );
+}
+
+/** Native select with the brand's field styling and a drawn chevron. */
+function SelectBox({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: readonly (readonly [string, string])[];
+}) {
+  return (
+    <label className="relative flex h-10 items-center border border-navy/15 bg-ivory text-sm transition-[border-color,box-shadow] focus-within:border-gold focus-within:ring-2 focus-within:ring-gold/25 hover:border-gold/70">
+      <span className="ps-3 text-muted-foreground">{label}:</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-full cursor-pointer appearance-none bg-transparent ps-1.5 pe-8 text-navy focus:outline-none"
+      >
+        {options.map(([v, l]) => (
+          <option key={v} value={v}>
+            {l}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        aria-hidden
+        className="pointer-events-none absolute top-1/2 end-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+      />
+    </label>
   );
 }
 
@@ -473,7 +550,7 @@ function PriceRange({
     if (a !== sp.min || b !== sp.max) onApply({ min: a, max: b });
   };
   const field = cn(
-    "h-10 border bg-ivory px-3 text-sm focus:border-gold focus:outline-none",
+    "h-10 border border-navy/15 bg-ivory px-3 text-sm tabular-nums transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25",
     wide ? "min-w-0 flex-1" : "w-28",
   );
   const props = {
@@ -495,7 +572,9 @@ function PriceRange({
         aria-label="أقل سعر"
         className={field}
       />
-      <span className="text-muted-foreground">–</span>
+      <span className="text-muted-foreground" aria-hidden>
+        –
+      </span>
       <input
         {...props}
         value={max}
