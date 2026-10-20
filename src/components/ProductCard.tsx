@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Check, Flame, Plus } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Flame, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { Product } from "@/lib/data";
 import { useCart } from "@/lib/cart";
@@ -31,7 +31,6 @@ export function ProductCard({ p, currency }: { p: Product; currency?: string | u
   const range = priceRange(p);
   const fromPrice = hasSizes && !size && range.min !== range.max;
   const [img1, img2] = p.images;
-  const MAX_CHIPS = 4;
 
   const add = () => {
     if (quickSizes && !size) {
@@ -168,46 +167,55 @@ export function ProductCard({ p, currency }: { p: Product; currency?: string | u
       {hasSizes && !unavailable && (
         <div className="mt-3">
           {quickSizes ? (
-            <div
+            // The visible face is a styled box (responsive text, truncation, real riyal sign); an
+            // invisible native <select> covers it, so taps open the OS picker with full option text.
+            <label
               className={cn(
-                "flex flex-wrap gap-1.5 rounded-sm transition-shadow",
-                nudge && "ring-2 ring-gold ring-offset-2 ring-offset-background",
+                "relative flex h-10 w-full cursor-pointer items-center gap-2 rounded-md border bg-ivory ps-3 pe-8 transition-[border-color,box-shadow] duration-150",
+                "hover:border-gold/70 focus-within:border-gold focus-within:ring-2 focus-within:ring-gold/25",
+                size ? "border-navy/30" : "border-navy/15",
+                nudge && "border-gold ring-2 ring-gold/40",
               )}
-              role="radiogroup"
-              aria-label={`مقاس ${p.name}`}
             >
-              {sizes.slice(0, MAX_CHIPS).map((s) => {
-                const active = size === s.label;
-                return (
-                  <button
-                    key={s.label}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    onClick={() => setSize(active ? undefined : s.label)}
-                    title={formatPrice(s.price ?? effectivePrice(p), currency)}
-                    className={cn(
-                      "border px-2.5 py-1 text-xs transition-colors",
-                      active
-                        ? "border-navy bg-navy text-cream"
-                        : "border-navy/15 text-navy hover:border-gold",
+              <span className="sr-only">مقاس {p.name}</span>
+              <span
+                aria-hidden
+                className="flex min-w-0 flex-1 items-center gap-2 text-xs sm:text-sm"
+              >
+                {selected ? (
+                  <>
+                    <span className="min-w-0 truncate text-navy">{selected.label}</span>
+                    {range.min !== range.max && (
+                      <span className="ms-auto shrink-0 text-[0.7rem] text-muted-foreground tabular-nums sm:text-xs">
+                        {formatPrice(selected.price ?? effectivePrice(p), currency)}
+                      </span>
                     )}
-                  >
-                    {s.label}
-                  </button>
-                );
-              })}
-              {sizes.length > MAX_CHIPS && (
-                <Link
-                  to="/product/$slug"
-                  params={{ slug: p.slug }}
-                  className="border border-dashed border-navy/20 px-2.5 py-1 text-xs text-muted-foreground hover:border-gold hover:text-navy"
-                  aria-label={`كل مقاسات ${p.name}`}
-                >
-                  +{sizes.length - MAX_CHIPS}
-                </Link>
-              )}
-            </div>
+                  </>
+                ) : (
+                  <span className="truncate text-muted-foreground">اختر المقاس</span>
+                )}
+              </span>
+              <select
+                value={size ?? ""}
+                onChange={(e) => setSize(e.target.value || undefined)}
+                aria-invalid={nudge || undefined}
+                className="absolute inset-0 h-full w-full cursor-pointer appearance-none opacity-0"
+              >
+                <option value="">اختر المقاس</option>
+                {sizes.map((s) => (
+                  <option key={s.label} value={s.label}>
+                    {/* Native options may ignore web fonts, so prices use the text currency label */}
+                    {range.min !== range.max
+                      ? `${s.label} — ${formatPrice(s.price ?? effectivePrice(p), currency, { plain: true })}`
+                      : s.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                aria-hidden
+                className="pointer-events-none absolute end-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              />
+            </label>
           ) : (
             <p className="truncate text-xs text-muted-foreground">
               المقاسات: {sizes.map((s) => s.label).join(" · ")}
