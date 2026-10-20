@@ -22,6 +22,7 @@ import { MobileBar } from "@/components/MobileBar";
 import { SiteMenuProvider } from "@/lib/site-menu";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "@/components/ui/sonner";
+import { loadSeo } from "@/lib/seo-loader";
 
 function NotFoundComponent() {
   return (
@@ -70,14 +71,26 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
+  // Settings are needed by every page's tags; loading them here also ships them with the SSR HTML
+  loader: async ({ context }) => {
+    const { seo, store } = await loadSeo(context.queryClient);
+    return { googleVerification: seo.googleVerification, store, siteUrl: seo.siteUrl };
+  },
+  head: ({ loaderData }) => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "TARAF FURNITURE — أثاث فاخر" },
+      // Defaults; each page overrides title, description and the og:* tags
+      { title: loaderData?.store ?? "TARAF FURNITURE" },
       { name: "description", content: "أثاث فاخر وقطع خشبية منحوتة بعناية من طرف للأثاث." },
       { property: "og:type", content: "website" },
+      { property: "og:locale", content: "ar_SA" },
+      { property: "og:site_name", content: loaderData?.store ?? "TARAF FURNITURE" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "theme-color", content: "#172B49" },
+      ...(loaderData?.googleVerification
+        ? [{ name: "google-site-verification", content: loaderData.googleVerification }]
+        : []),
     ],
     links: [
       { rel: "stylesheet", href: appCss },

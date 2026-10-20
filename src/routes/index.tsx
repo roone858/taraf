@@ -8,6 +8,7 @@ import { Emblem } from "@/components/Logo";
 import {
   bestsellersQuery,
   categoriesQuery,
+  faqsQuery,
   featuredQuery,
   onSaleQuery,
   settingsQuery,
@@ -16,21 +17,43 @@ import {
 } from "@/lib/data";
 import { parseHomeConfig, type SectionConfig, type SectionId } from "@/lib/home-config";
 import { cn } from "@/lib/utils";
+import { pageHead, storeJsonLd } from "@/lib/seo";
+import { loadSeo } from "@/lib/seo-loader";
 import { TestimonialsSlider } from "@/components/TestimonialsSlider";
 import { FaqSection } from "@/components/FaqSection";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "TARAF FURNITURE — أناقة خالدة تُصاغ بالحرفة" },
-      {
-        name: "description",
-        content: "اكتشف أثاث طرف الفاخر: قطع منحوتة، كنب راقٍ، سفرة وغرف نوم بتفاصيل حرفية.",
-      },
-      { property: "og:title", content: "TARAF FURNITURE — أثاث فاخر" },
-      { property: "og:description", content: "قطع أثاث فاخرة منحوتة بعناية لمنزلك." },
-    ],
-  }),
+  // Everything above the fold and the product rails render on the server
+  loader: async ({ context: { queryClient } }) => {
+    const warm = (p: Promise<unknown>) => p.catch(() => null);
+    const [{ s, seo, store }] = await Promise.all([
+      loadSeo(queryClient),
+      warm(queryClient.ensureQueryData(categoriesQuery)),
+      warm(queryClient.ensureQueryData(featuredQuery)),
+      warm(queryClient.ensureQueryData(bestsellersQuery)),
+      warm(queryClient.ensureQueryData(onSaleQuery)),
+      warm(queryClient.ensureQueryData(testimonialsQuery)),
+      warm(queryClient.ensureQueryData(faqsQuery)),
+    ]);
+    return { s, seo, store };
+  },
+  head: ({ loaderData }) => {
+    if (!loaderData) return {};
+    const { s, seo, store } = loaderData;
+    const tagline = s?.hero_title || "أناقة خالدة تُصاغ بالحرفة";
+    return pageHead({
+      seo,
+      store,
+      rawTitle: seo.homeTitle || `${store} — ${tagline}`,
+      description:
+        seo.homeDescription ||
+        s?.hero_subtitle ||
+        `اكتشف أثاث ${store} الفاخر: قطع منحوتة، كنب راقٍ، سفرة وغرف نوم بتفاصيل حرفية.`,
+      image: seo.shareImage || s?.hero_image_url,
+      path: "/",
+      jsonLd: storeJsonLd(s, seo),
+    });
+  },
   component: Home,
 });
 

@@ -61,6 +61,7 @@ function SettingsPage() {
       story_title: _st,
       story_body: _sb,
       home_config: _hc,
+      seo: _seo,
       ...rest
     } = d as Settings;
     const row = {

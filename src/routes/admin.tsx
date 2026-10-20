@@ -19,6 +19,7 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  SearchCheck,
   ShieldAlert,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -129,6 +130,7 @@ const NAV_GROUPS = [
       { to: "/admin/home", label: "الصفحة الرئيسية", Icon: LayoutTemplate },
       { to: "/admin/testimonials", label: "آراء العملاء", Icon: MessageSquareQuote },
       { to: "/admin/faqs", label: "الأسئلة الشائعة", Icon: HelpCircle },
+      { to: "/admin/seo", label: "تحسين الظهور", Icon: SearchCheck },
     ],
   },
   { title: "النظام", items: [{ to: "/admin/settings", label: "الإعدادات", Icon: Settings }] },

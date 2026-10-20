@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, queryOptions, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import {
@@ -13,7 +13,9 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { categoriesQuery, settingsQuery } from "@/lib/data";
+import { categoriesQuery, settingsQuery, type Category } from "@/lib/data";
+import { breadcrumbJsonLd, pageHead } from "@/lib/seo";
+import { loadSeo } from "@/lib/seo-loader";
 import { CURRENCIES } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ProductCard } from "@/components/ProductCard";
@@ -46,19 +48,84 @@ const AVAIL = [
 const n = new Intl.NumberFormat("ar-EG");
 const pieces = (count: number) => `${n.format(count)} ${count === 1 ? "قطعة" : "قطع"}`;
 
+/** One page of results (pages are cumulative: page 2 returns the first 24). */
+const shopQuery = (sp: ShopSearch, cats: Category[] | undefined) =>
+  queryOptions({
+    queryKey: ["shop", sp, cats?.length],
+    queryFn: async () => {
+      const page = sp.page ?? 1;
+      let qb = supabase.from("products").select("*", { count: "exact" }).eq("is_published", true);
+      if (sp.q) qb = qb.ilike("name", `%${sp.q.replace(/[%_\\]/g, "\\$&")}%`);
+      if (sp.cat) {
+        const c = cats?.find((x) => x.slug === sp.cat);
+        if (c) qb = qb.eq("category_id", c.id);
+      }
+      if (sp.min != null) qb = qb.gte("price", sp.min);
+      if (sp.max != null) qb = qb.lte("price", sp.max);
+      if (sp.avail) qb = qb.eq("availability", sp.avail);
+      if (sp.sort === "price_asc") qb = qb.order("price", { ascending: true });
+      else if (sp.sort === "price_desc") qb = qb.order("price", { ascending: false });
+      else qb = qb.order("created_at", { ascending: false });
+      const { data, count, error } = await qb.order("id").range(0, page * PAGE - 1);
+      if (error) throw error;
+      return { rows: data, count: count ?? 0 };
+    },
+  });
+
 export const Route = createFileRoute("/shop")({
   validateSearch: searchSchema,
-  head: () => ({
-    meta: [
-      { title: "المتجر — TARAF FURNITURE" },
-      {
-        name: "description",
-        content: "تصفح مجموعة طرف الكاملة من الأثاث الفاخر حسب الفئة والسعر.",
-      },
-      { property: "og:title", content: "متجر TARAF FURNITURE" },
-      { property: "og:description", content: "كنب، سفرة، غرف نوم، طاولات وقطع ديكور فاخرة." },
-    ],
-  }),
+  loaderDeps: ({ search }) => search,
+  // Products are in the server HTML so search engines index the listing
+  loader: async ({ context: { queryClient }, deps }) => {
+    const [{ seo, store }, cats] = await Promise.all([
+      loadSeo(queryClient),
+      queryClient.ensureQueryData(categoriesQuery).catch(() => undefined),
+    ]);
+    await queryClient.ensureQueryData(shopQuery(deps, cats)).catch(() => null);
+    const cat = cats?.find((c) => c.slug === deps.cat);
+    return {
+      seo,
+      store,
+      cat: cat
+        ? {
+            name: cat.name,
+            slug: cat.slug,
+            description: cat.description,
+            image_url: cat.image_url,
+            seo_title: cat.seo_title,
+            seo_description: cat.seo_description,
+          }
+        : null,
+      isSearch: !!deps.q,
+    };
+  },
+  head: ({ loaderData }) => {
+    if (!loaderData) return {};
+    const { seo, store, cat, isSearch } = loaderData;
+    // Sorting, price/availability filters and paging all canonicalise to the plain listing or
+    // category; on-site search results are kept out of the index entirely.
+    const path = cat ? `/shop?cat=${encodeURIComponent(cat.slug)}` : "/shop";
+    return pageHead({
+      seo,
+      store,
+      title: cat ? cat.seo_title || cat.name : "المتجر — كل القطع",
+      description: cat
+        ? cat.seo_description ||
+          cat.description ||
+          `تسوّق ${cat.name} من ${store}: أثاث فاخر بتفاصيل حرفية.`
+        : `تصفح مجموعة ${store} الكاملة من الأثاث الفاخر: كنب، سفرة، غرف نوم، طاولات وقطع ديكور.`,
+      image: cat?.image_url,
+      path,
+      noindex: isSearch,
+      jsonLd: [
+        breadcrumbJsonLd(seo, [
+          { name: "الرئيسية", path: "/" },
+          { name: "المتجر", path: "/shop" },
+          ...(cat ? [{ name: cat.name, path }] : []),
+        ]),
+      ],
+    });
+  },
   component: Shop,
 });
 
@@ -91,26 +158,9 @@ function Shop() {
   }, [q]);
 
   const { data, isLoading, isFetching, isPlaceholderData, error, refetch } = useQuery({
-    queryKey: ["shop", sp, cats?.length],
+    ...shopQuery(sp, cats),
     placeholderData: keepPreviousData,
     enabled: !sp.cat || !!cats,
-    queryFn: async () => {
-      let qb = supabase.from("products").select("*", { count: "exact" }).eq("is_published", true);
-      if (sp.q) qb = qb.ilike("name", `%${sp.q.replace(/[%_\\]/g, "\\$&")}%`);
-      if (sp.cat) {
-        const c = cats?.find((x) => x.slug === sp.cat);
-        if (c) qb = qb.eq("category_id", c.id);
-      }
-      if (sp.min != null) qb = qb.gte("price", sp.min);
-      if (sp.max != null) qb = qb.lte("price", sp.max);
-      if (sp.avail) qb = qb.eq("availability", sp.avail);
-      if (sp.sort === "price_asc") qb = qb.order("price", { ascending: true });
-      else if (sp.sort === "price_desc") qb = qb.order("price", { ascending: false });
-      else qb = qb.order("created_at", { ascending: false });
-      const { data, count, error } = await qb.order("id").range(0, page * PAGE - 1);
-      if (error) throw error;
-      return { rows: data, count: count ?? 0 };
-    },
   });
 
   const activeCat = cats?.find((c) => c.slug === sp.cat);

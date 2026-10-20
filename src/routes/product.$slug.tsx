@@ -19,23 +19,53 @@ import { availabilityLabel, effectivePrice, formatPrice, LOW_STOCK } from "@/lib
 import { useCart } from "@/lib/cart";
 import { priceRange, productSizes, unitPrice } from "@/lib/sizes";
 import { cn } from "@/lib/utils";
+import { breadcrumbJsonLd, pageHead, productJsonLd } from "@/lib/seo";
+import { loadSeo } from "@/lib/seo-loader";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/ProductCard";
 import { QuickOrderDialog } from "@/components/QuickOrderDialog";
 import { WhatsappIcon } from "@/components/BrandIcons";
 
 export const Route = createFileRoute("/product/$slug")({
-  head: () => ({
-    meta: [
-      { title: "تفاصيل القطعة — TARAF FURNITURE" },
-      {
-        name: "description",
-        content: "تفاصيل قطعة أثاث فاخرة من طرف: المقاسات، الخامات والتشطيبات.",
-      },
-      { property: "og:title", content: "قطعة من TARAF FURNITURE" },
-      { property: "og:description", content: "أثاث فاخر بتفاصيل منحوتة." },
-    ],
-  }),
+  // Loaded on the server so the HTML (and link previews) carry the product itself
+  loader: async ({ context, params }) => {
+    const [{ s, seo, store }, p] = await Promise.all([
+      loadSeo(context.queryClient),
+      context.queryClient.ensureQueryData(productQuery(params.slug)).catch(() => null),
+    ]);
+    return { s, seo, store, p };
+  },
+  head: ({ loaderData }) => {
+    if (!loaderData) return {};
+    const { s, seo, store, p } = loaderData;
+    if (!p) return pageHead({ seo, store, title: "القطعة غير متاحة", noindex: true });
+    const path = `/product/${p.slug}`;
+    const category = p.categories;
+    return pageHead({
+      seo,
+      store,
+      title: p.seo_title || p.name,
+      description:
+        p.seo_description ||
+        p.description ||
+        `${p.name}${category ? ` من مجموعة ${category.name}` : ""} — أثاث فاخر من ${store}.`,
+      image: p.images[0],
+      path,
+      type: "product",
+      extraMeta: [
+        { property: "product:price:amount", content: String(effectivePrice(p)) },
+        { property: "product:price:currency", content: s?.currency ?? "SAR" },
+      ],
+      jsonLd: [
+        productJsonLd(p, s, seo),
+        breadcrumbJsonLd(seo, [
+          { name: "المتجر", path: "/shop" },
+          ...(category ? [{ name: category.name, path: `/shop?cat=${category.slug}` }] : []),
+          { name: p.name, path },
+        ]),
+      ],
+    });
+  },
   component: ProductPage,
 });
 

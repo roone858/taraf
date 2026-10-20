@@ -40,6 +40,8 @@ export const Route = createFileRoute("/checkout")({
       { name: "description", content: "راجع سلتك وأرسل طلبك مباشرة عبر واتساب." },
       { property: "og:title", content: "إتمام الطلب — TARAF FURNITURE" },
       { property: "og:description", content: "أرسل طلبك عبر واتساب." },
+      // A personal cart page: nothing for search engines to index
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
   component: Checkout,

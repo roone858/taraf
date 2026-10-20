@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { z } from "zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ChevronDown,
@@ -51,8 +52,13 @@ import {
   SectionTitle,
   inp,
 } from "@/components/admin/kit";
+import { SeoFields } from "@/components/admin/SeoFields";
 
-export const Route = createFileRoute("/admin/products")({ component: Products });
+export const Route = createFileRoute("/admin/products")({
+  // ?edit=<id> opens that item (used by the SEO health check)
+  validateSearch: z.object({ edit: z.string().optional() }),
+  component: Products,
+});
 
 /** Form state: price may be empty while editing; sizes are parsed from the jsonb column. */
 type Draft = Omit<Partial<Product>, "price" | "sizes"> & {
@@ -157,6 +163,17 @@ function Products() {
     published: scoped.filter((p) => p.is_published).length,
     draft: scoped.filter((p) => !p.is_published).length,
   };
+
+  // Deep link from Admin → تحسين الظهور: open the requested item once the list has loaded
+  const { edit: editId } = Route.useSearch();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!editId || !data) return;
+    const hit = data.find((x) => x.id === editId);
+    if (hit) setEdit(toDraft(hit));
+    navigate({ to: ".", search: {}, replace: true });
+  }, [editId, data, navigate]);
+
   const rows = useMemo(
     () => scoped.filter((p) => status === "all" || (status === "published") === p.is_published),
     [scoped, status],
@@ -201,6 +218,8 @@ function Products() {
       is_published: edit.is_published ?? false,
       is_featured: edit.is_featured ?? false,
       is_bestseller: edit.is_bestseller ?? false,
+      seo_title: edit.seo_title?.trim() || null,
+      seo_description: edit.seo_description?.trim() || null,
       updated_at: new Date().toISOString(),
     };
     const { error } = edit.id
@@ -715,6 +734,26 @@ function Products() {
                     </Field>
                   </div>
                 </Section>
+
+                <details className="group" open={!!(edit.seo_title || edit.seo_description)}>
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+                    <SectionTitle>الظهور في جوجل</SectionTitle>
+                    <span className="text-xs text-muted-foreground group-open:hidden">
+                      اختياري — اضغط للتعديل
+                    </span>
+                  </summary>
+                  <div className="mt-4">
+                    <SeoFields
+                      title={edit.seo_title ?? ""}
+                      description={edit.seo_description ?? ""}
+                      onTitle={(seo_title) => set({ seo_title })}
+                      onDescription={(seo_description) => set({ seo_description })}
+                      fallbackTitle={edit.name ?? ""}
+                      fallbackDescription={edit.description ?? ""}
+                      path={`/product/${edit.slug?.trim() || slugify(edit.name ?? "")}`}
+                    />
+                  </div>
+                </details>
               </div>
 
               {/* Sticky footer */}

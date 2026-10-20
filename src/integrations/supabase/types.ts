@@ -22,6 +22,8 @@ export type Database = {
           image_url: string | null
           is_active: boolean
           name: string
+          seo_description: string | null
+          seo_title: string | null
           slug: string
           sort_order: number
         }
@@ -32,6 +34,8 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           name: string
+          seo_description?: string | null
+          seo_title?: string | null
           slug: string
           sort_order?: number
         }
@@ -42,6 +46,8 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           name?: string
+          seo_description?: string | null
+          seo_title?: string | null
           slug?: string
           sort_order?: number
         }
@@ -201,6 +207,8 @@ export type Database = {
           name: string
           price: number
           sale_price: number | null
+          seo_description: string | null
+          seo_title: string | null
           sizes: Json
           sku: string | null
           slug: string
@@ -226,6 +234,8 @@ export type Database = {
           name: string
           price: number
           sale_price?: number | null
+          seo_description?: string | null
+          seo_title?: string | null
           sizes?: Json
           sku?: string | null
           slug: string
@@ -251,6 +261,8 @@ export type Database = {
           name?: string
           price?: number
           sale_price?: number | null
+          seo_description?: string | null
+          seo_title?: string | null
           sizes?: Json
           sku?: string | null
           slug?: string
@@ -284,6 +296,7 @@ export type Database = {
           instagram_url: string | null
           policies: string | null
           promo_banner: string | null
+          seo: Json
           snapchat_url: string | null
           store_name: string
           story_body: string
@@ -307,6 +320,7 @@ export type Database = {
           instagram_url?: string | null
           policies?: string | null
           promo_banner?: string | null
+          seo?: Json
           snapchat_url?: string | null
           store_name?: string
           story_body?: string
@@ -330,6 +344,7 @@ export type Database = {
           instagram_url?: string | null
           policies?: string | null
           promo_banner?: string | null
+          seo?: Json
           snapchat_url?: string | null
           store_name?: string
           story_body?: string

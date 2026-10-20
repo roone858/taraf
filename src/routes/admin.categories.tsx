@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { z } from "zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { FolderPlus, ImageOff, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,8 +35,13 @@ import {
   adminNum,
   inp,
 } from "@/components/admin/kit";
+import { SeoFields } from "@/components/admin/SeoFields";
 
-export const Route = createFileRoute("/admin/categories")({ component: Categories });
+export const Route = createFileRoute("/admin/categories")({
+  // ?edit=<id> opens that item (used by the SEO health check)
+  validateSearch: z.object({ edit: z.string().optional() }),
+  component: Categories,
+});
 
 type Draft = Partial<Category>;
 type Row = Category & { count: number };
@@ -65,6 +71,16 @@ function Categories() {
     },
   });
   const rows = data ?? [];
+
+  // Deep link from Admin → تحسين الظهور: open the requested item once the list has loaded
+  const { edit: editId } = Route.useSearch();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!editId || !data) return;
+    const hit = data.find((x) => x.id === editId);
+    if (hit) setEdit(hit);
+    navigate({ to: ".", search: {}, replace: true });
+  }, [editId, data, navigate]);
   const activeCount = rows.filter((c) => c.is_active).length;
 
   const refresh = () =>
@@ -81,6 +97,8 @@ function Categories() {
       slug: edit.slug?.trim() || slugify(edit.name),
       description: edit.description?.trim() || null,
       image_url: edit.image_url || null,
+      seo_title: edit.seo_title?.trim() || null,
+      seo_description: edit.seo_description?.trim() || null,
       is_active: edit.is_active ?? true,
       // New categories go to the end of the list
       sort_order:
@@ -310,6 +328,28 @@ function Categories() {
                     onChange={(e) => set({ description: e.target.value })}
                   />
                 </Field>
+                <details
+                  className="group rounded-lg border border-navy/10 bg-cream/50 p-4"
+                  open={!!(edit.seo_title || edit.seo_description)}
+                >
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-navy [&::-webkit-details-marker]:hidden">
+                    الظهور في جوجل
+                    <span className="text-xs text-muted-foreground group-open:hidden">
+                      اختياري — اضغط للتعديل
+                    </span>
+                  </summary>
+                  <div className="mt-4">
+                    <SeoFields
+                      title={edit.seo_title ?? ""}
+                      description={edit.seo_description ?? ""}
+                      onTitle={(seo_title) => set({ seo_title })}
+                      onDescription={(seo_description) => set({ seo_description })}
+                      fallbackTitle={edit.name ?? ""}
+                      fallbackDescription={edit.description ?? ""}
+                      path={`/shop?cat=${edit.slug?.trim() || slugify(edit.name ?? "")}`}
+                    />
+                  </div>
+                </details>
                 {edit.id && (
                   <p className="text-xs text-muted-foreground">
                     {(() => {
