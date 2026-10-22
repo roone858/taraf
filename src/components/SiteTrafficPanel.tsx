@@ -38,7 +38,7 @@ import {
 } from "@/lib/site-analytics";
 import { flag, mergeByLabel, pageLabel, percentChange, sourceLabel } from "@/lib/analytics-labels";
 import { cn } from "@/lib/utils";
-import { SnapchatIcon, WhatsappIcon } from "./BrandIcons";
+import { SnapchatIcon, TiktokIcon, WhatsappIcon } from "./BrandIcons";
 
 const num = new Intl.NumberFormat("ar-EG");
 const dec = new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 1 });
@@ -79,6 +79,7 @@ const SOURCE_ICONS: Record<string, IconLike> = {
   فيسبوك: Facebook,
   واتساب: WhatsappIcon,
   "سناب شات": SnapchatIcon,
+  "تيك توك": TiktokIcon,
   X: Twitter,
   جوجل: Search,
   "دخول مباشر": Link2,

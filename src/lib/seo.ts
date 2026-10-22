@@ -225,7 +225,7 @@ export function breadcrumbJsonLd(seo: SeoSettings, items: { name: string; path: 
 
 /** The store itself, plus the site-search action that lets Google show a search box. */
 export function storeJsonLd(s: Settings | null | undefined, seo: SeoSettings) {
-  const sameAs = [s?.instagram_url, s?.facebook_url, s?.snapchat_url, s?.twitter_url].filter(
+  const sameAs = [s?.instagram_url, s?.facebook_url, s?.snapchat_url, s?.tiktok_url, s?.twitter_url].filter(
     (x): x is string => !!x,
   );
   const store = {

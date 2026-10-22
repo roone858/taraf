@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Facebook, Instagram, Twitter, Phone, Mail, MapPin } from "lucide-react";
 import { Logo } from "./Logo";
-import { SnapchatIcon, WhatsappIcon } from "./BrandIcons";
+import { SnapchatIcon, TiktokIcon, WhatsappIcon } from "./BrandIcons";
 import { useCart } from "@/lib/cart";
 import { categoriesQuery, settingsQuery } from "@/lib/data";
 import { normalizeWhatsappNumber } from "@/lib/whatsapp";
@@ -21,6 +21,7 @@ export function SiteFooter() {
     { url: waUrl ?? "https://www.whatsapp.com", Icon: WhatsappIcon, label: "WhatsApp" },
     { url: s?.facebook_url || "https://www.facebook.com", Icon: Facebook, label: "Facebook" },
     { url: s?.snapchat_url || "https://www.snapchat.com", Icon: SnapchatIcon, label: "Snapchat" },
+    { url: s?.tiktok_url || "https://www.tiktok.com", Icon: TiktokIcon, label: "TikTok" },
     { url: s?.instagram_url || "https://www.instagram.com", Icon: Instagram, label: "Instagram" },
     { url: s?.twitter_url || "https://x.com", Icon: Twitter, label: "X" },
   ];

@@ -8,7 +8,7 @@ import { settingsQuery, type Settings } from "@/lib/data";
 import { CURRENCIES } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { SnapchatIcon, WhatsappIcon } from "@/components/BrandIcons";
+import { SnapchatIcon, TiktokIcon, WhatsappIcon } from "@/components/BrandIcons";
 import { Field, PageHeader, SaveBar, Surface, inp } from "@/components/admin/kit";
 
 export const Route = createFileRoute("/admin/settings")({ component: SettingsPage });
@@ -22,6 +22,7 @@ const NULLABLE = [
   "instagram_url",
   "facebook_url",
   "snapchat_url",
+  "tiktok_url",
   "twitter_url",
   "policies",
 ] as const;
@@ -189,6 +190,14 @@ function SettingsPage() {
               dir="ltr"
               placeholder="https://snapchat.com/add/…"
               {...text("snapchat_url")}
+            />
+          </Field>
+          <Field label="TikTok">
+            <IconInput
+              icon={<TiktokIcon className="h-4 w-4" />}
+              dir="ltr"
+              placeholder="https://tiktok.com/@…"
+              {...text("tiktok_url")}
             />
           </Field>
           <Field label="X">

@@ -301,6 +301,7 @@ export type Database = {
           promo_banner: string | null
           seo: Json
           snapchat_url: string | null
+          tiktok_url: string | null
           store_name: string
           story_body: string
           story_title: string
@@ -325,6 +326,7 @@ export type Database = {
           promo_banner?: string | null
           seo?: Json
           snapchat_url?: string | null
+          tiktok_url?: string | null
           store_name?: string
           story_body?: string
           story_title?: string
@@ -349,6 +351,7 @@ export type Database = {
           promo_banner?: string | null
           seo?: Json
           snapchat_url?: string | null
+          tiktok_url?: string | null
           store_name?: string
           story_body?: string
           story_title?: string

@@ -162,6 +162,7 @@ function Overview() {
         settings?.instagram_url ||
         settings?.facebook_url ||
         settings?.snapchat_url ||
+        settings?.tiktok_url ||
         settings?.twitter_url
       ),
       label: "رابط حساب تواصل اجتماعي واحد على الأقل",
