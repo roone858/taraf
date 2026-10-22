@@ -10,7 +10,9 @@ import {
   Inbox,
   Loader2,
   MapPin,
+  Pencil,
   Phone,
+  Plus,
   RefreshCw,
   Search,
   StickyNote,
@@ -45,6 +47,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { WhatsappIcon } from "@/components/BrandIcons";
 import { SendInvoiceWhatsapp } from "@/components/SendInvoiceWhatsapp";
+import { OrderEditor } from "@/components/admin/OrderEditor";
 import {
   Badge,
   EmptyState,
@@ -112,6 +115,7 @@ function Orders() {
   const [period, setPeriod] = useState<Period>("all");
   const [sort, setSort] = useState<Sort>("newest");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [editor, setEditor] = useState<{ order: OrderRow | null } | null>(null);
   const { data: settings } = useQuery(settingsQuery);
 
   const { data, isLoading, isFetching, isError, refetch } = useQuery({
@@ -197,16 +201,21 @@ function Orders() {
             )}
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="h-10 gap-2"
-          aria-label="تحديث الطلبات"
-        >
-          <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
-          <span className="hidden sm:inline">تحديث</span>
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="h-10 gap-2"
+            aria-label="تحديث الطلبات"
+          >
+            <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+            <span className="hidden sm:inline">تحديث</span>
+          </Button>
+          <Button onClick={() => setEditor({ order: null })} className="h-10 gap-2">
+            <Plus className="h-4 w-4" /> فاتورة جديدة
+          </Button>
+        </div>
       </header>
 
       <div className="mt-8 overflow-hidden rounded-xl border border-navy/10 bg-ivory shadow-[0_1px_2px_oklch(0.19_0.03_260/0.06)]">
@@ -418,6 +427,25 @@ function Orders() {
         storeName={settings?.store_name}
         onClose={() => setOpenId(null)}
         onChanged={refresh}
+        onEdit={() => {
+          if (!open) return;
+          // One dialog at a time: the editor replaces the order view and reopens it after saving
+          setEditor({ order: open });
+          setOpenId(null);
+        }}
+      />
+
+      <OrderEditor
+        open={!!editor}
+        order={editor?.order ?? null}
+        currency={settings?.currency}
+        defaultFee={Number(settings?.delivery_fee ?? 0)}
+        onClose={() => setEditor(null)}
+        onSaved={async (id) => {
+          setEditor(null);
+          await refresh();
+          setOpenId(id);
+        }}
       />
     </div>
   );
@@ -484,12 +512,14 @@ function OrderDialog({
   storeName,
   onClose,
   onChanged,
+  onEdit,
 }: {
   order: OrderRow | null;
   storeCurrency: string | undefined;
   storeName: string | undefined;
   onClose: () => void;
   onChanged: () => Promise<unknown>;
+  onEdit: () => void;
 }) {
   const [pending, setPending] = useState<OrderStatus | null>(null);
   const [notes, setNotes] = useState(order?.admin_notes ?? "");
@@ -499,8 +529,6 @@ function OrderDialog({
 
   const currency = order.currency || storeCurrency;
   const customerWa = normalizeWhatsappNumber(order.phone);
-  const canDelete =
-    (order.status === "new" || order.status === "cancelled") && !order.stock_deducted;
 
   const changeStatus = async (s: OrderStatus) => {
     if (s === order.status || pending) return;
@@ -529,10 +557,10 @@ function OrderDialog({
   };
 
   const remove = async () => {
-    const { error } = await supabase.from("orders").delete().eq("id", order.id);
+    const { error } = await supabase.rpc("admin_delete_order", { _order_id: order.id });
     setConfirmDelete(false);
-    if (error) return void toast.error(error.message);
-    toast.success("تم حذف الطلب");
+    if (error) return void toast.error(orderErrorMessage(error.message));
+    toast.success(order.stock_deducted ? "تم حذف الفاتورة وإرجاع المخزون" : "تم حذف الفاتورة");
     onClose();
     await onChanged();
   };
@@ -698,18 +726,17 @@ function OrderDialog({
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-navy/10 px-6 py-4">
-            {canDelete ? (
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(true)}
-                className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-destructive transition-colors hover:bg-destructive/10"
-              >
-                <Trash2 className="h-4 w-4" /> حذف الطلب
-              </button>
-            ) : (
-              <span />
-            )}
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-destructive transition-colors hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4" /> حذف
+            </button>
             <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="outline" onClick={onEdit} disabled={!!pending} className="gap-2">
+                <Pencil className="h-4 w-4" /> تعديل
+              </Button>
               <SendInvoiceWhatsapp order={order} storeName={storeName} currency={storeCurrency} />
               <Button asChild variant="outline" className="gap-2">
                 <Link to="/admin/orders/$id/invoice" params={{ id: order.id }} target="_blank">
@@ -727,9 +754,11 @@ function OrderDialog({
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent dir="rtl" className="bg-ivory sm:rounded-xl">
           <AlertDialogHeader className="text-start">
-            <AlertDialogTitle>حذف الطلب {order.order_number}؟</AlertDialogTitle>
+            <AlertDialogTitle>حذف الفاتورة {order.order_number}؟</AlertDialogTitle>
             <AlertDialogDescription>
-              يُحذف الطلب وقطعه نهائياً. للاحتفاظ بالسجل غيّر الحالة إلى «ملغي» بدلاً من الحذف.
+              تُحذف الفاتورة وقطعها نهائياً ولا يمكن استرجاعها.
+              {order.stock_deducted && " الكميات المخصومة من المخزون ستُعاد إليه."} للاحتفاظ بالسجل
+              غيّر الحالة إلى «ملغي» بدلاً من الحذف.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">
@@ -738,7 +767,7 @@ function OrderDialog({
               onClick={remove}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              حذف الطلب
+              حذف الفاتورة
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

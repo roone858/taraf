@@ -49,7 +49,13 @@ export function orderErrorMessage(message: string | undefined): string {
     case "size_required":
       return detail ? `اختر مقاس «${detail}» قبل إرسال الطلب` : "اختر المقاس قبل إرسال الطلب";
     case "size_unavailable":
-      return detail ? `المقاس المختار من «${detail}» لم يعد متاحاً` : "أحد المقاسات المختارة لم يعد متاحاً";
+      return detail
+        ? `المقاس المختار من «${detail}» لم يعد متاحاً`
+        : "أحد المقاسات المختارة لم يعد متاحاً";
+    case "invalid_fee":
+      return "رسوم التوصيل غير صحيحة";
+    case "invalid_status":
+      return "حالة الطلب غير صحيحة";
     case "forbidden":
       return "ليست لديك صلاحية لهذا الإجراء";
     case "not_found":

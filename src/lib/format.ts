@@ -9,7 +9,7 @@ export const CURRENCIES: Record<string, [symbol: string, text: string, name: str
 };
 
 export function formatPrice(value: number, currency = "EGP", opts: { plain?: boolean } = {}) {
-  const n = new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 2 }).format(value);
+  const n = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
   const c = CURRENCIES[currency];
   const label = c ? (opts.plain ? c[1] : c[0]) : currency;
   return `${n} ${label}`;

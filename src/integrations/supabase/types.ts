@@ -588,6 +588,19 @@ export type Database = {
         };
         Returns: boolean;
       };
+      admin_delete_order: {
+        Args: {
+          _order_id: string;
+        };
+        Returns: undefined;
+      };
+      admin_save_order: {
+        Args: {
+          _order: Json;
+          _order_id: string | null;
+        };
+        Returns: string;
+      };
       place_order: {
         Args: {
           _customer: Json;
