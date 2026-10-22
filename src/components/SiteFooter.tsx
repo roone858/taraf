@@ -4,7 +4,7 @@ import { Facebook, Instagram, Twitter, Phone, Mail, MapPin } from "lucide-react"
 import { Logo } from "./Logo";
 import { SnapchatIcon, TiktokIcon, WhatsappIcon } from "./BrandIcons";
 import { useCart } from "@/lib/cart";
-import { categoriesQuery, settingsQuery } from "@/lib/data";
+import { categoriesQuery, publishedPoliciesQuery, settingsQuery } from "@/lib/data";
 import { normalizeWhatsappNumber } from "@/lib/whatsapp";
 
 const link =
@@ -13,6 +13,7 @@ const link =
 export function SiteFooter() {
   const { data: s } = useQuery(settingsQuery);
   const { data: cats } = useQuery(categoriesQuery);
+  const { data: policies } = useQuery(publishedPoliciesQuery("ar"));
   const { setOpen } = useCart();
   const wa = normalizeWhatsappNumber(s?.whatsapp_number);
   const waUrl = wa ? `https://wa.me/${wa}` : null;
@@ -83,6 +84,11 @@ export function SiteFooter() {
             <li>
               <Link to="/checkout" className={link}>
                 إتمام الطلب
+              </Link>
+            </li>
+            <li>
+              <Link to="/policies" className={link}>
+                السياسات والشروط
               </Link>
             </li>
           </FooterNav>

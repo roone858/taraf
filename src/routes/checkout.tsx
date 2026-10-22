@@ -13,7 +13,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { settingsQuery } from "@/lib/data";
+import { settingsQuery, policyKindQuery } from "@/lib/data";
 import { useCart, type CartItem } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import { productSizes, unitPrice } from "@/lib/sizes";
@@ -59,6 +59,8 @@ function Checkout() {
   const honeypot = useRef<HTMLInputElement>(null);
   const phone = normalizeWhatsappNumber(s?.whatsapp_number);
   const fee = Number(s?.delivery_fee ?? 0);
+  const { data: termsPolicy } = useQuery(policyKindQuery("terms", "ar"));
+  const { data: returnsPolicy } = useQuery(policyKindQuery("returns", "ar"));
   const {
     register,
     handleSubmit,
@@ -358,6 +360,33 @@ function Checkout() {
                   </>
                 )}
               </Button>
+              <p className="text-center text-[0.7rem] leading-relaxed text-muted-foreground">
+                بتأكيد الطلب فإنك توافق على{" "}
+                {termsPolicy ? (
+                  <Link
+                    to="/$slug"
+                    params={{ slug: termsPolicy.slug }}
+                    className="text-navy underline decoration-gold/60 underline-offset-2 hover:text-navy/80"
+                  >
+                    الشروط والأحكام
+                  </Link>
+                ) : (
+                  <span>الشروط والأحكام</span>
+                )}{" "}
+                و{" "}
+                {returnsPolicy ? (
+                  <Link
+                    to="/$slug"
+                    params={{ slug: returnsPolicy.slug }}
+                    className="text-navy underline decoration-gold/60 underline-offset-2 hover:text-navy/80"
+                  >
+                    سياسة الاستبدال والاسترجاع
+                  </Link>
+                ) : (
+                  <span>سياسة الاستبدال والاسترجاع</span>
+                )}
+                .
+              </p>
               <p className="flex gap-2 text-xs leading-relaxed text-muted-foreground">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
                 <span>

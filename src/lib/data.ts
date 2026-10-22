@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import type { PolicyKind, PolicyLanguage } from "@/lib/policies";
 
 export type Product = Database["public"]["Tables"]["products"]["Row"];
 export type Category = Database["public"]["Tables"]["categories"]["Row"];
@@ -121,6 +122,89 @@ export const productQuery = (slug: string) =>
         .eq("slug", slug)
         .eq("is_published", true)
         .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+/** Published policies in footer order for one language. */
+export const publishedPoliciesQuery = (language: PolicyLanguage) =>
+  queryOptions({
+    queryKey: ["policies", "published", language],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("policy_pages")
+        .select("*")
+        .eq("language", language)
+        .eq("status", "published")
+        .order("sort_order")
+        .order("title");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+/** A single published policy; null when it is missing, a draft or archived. */
+export const policyQuery = (slug: string, language: PolicyLanguage) =>
+  queryOptions({
+    queryKey: ["policy", language, slug],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("policy_pages")
+        .select("*")
+        .eq("slug", slug)
+        .eq("language", language)
+        .eq("status", "published")
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+/** Published policy of a known kind (used by checkout links). */
+export const policyKindQuery = (kind: PolicyKind, language: PolicyLanguage) =>
+  queryOptions({
+    queryKey: ["policy", "kind", kind, language],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("policy_pages")
+        .select("*")
+        .eq("kind", kind)
+        .eq("language", language)
+        .eq("status", "published")
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+/** All policy pages (including drafts and archives) for the admin dashboard. */
+export const policiesAdminQuery = queryOptions({
+  queryKey: ["policies", "admin"],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from("policy_pages")
+      .select("*")
+      .order("language")
+      .order("sort_order")
+      .order("created_at");
+    if (error) throw error;
+    return data;
+  },
+});
+
+/** Up to 20 snapshots taken before each meaningful edit. */
+export const policyRevisionsQuery = (pageId: string | undefined) =>
+  queryOptions({
+    queryKey: ["policy-revisions", pageId ?? "none"],
+    enabled: !!pageId,
+    queryFn: async () => {
+      if (!pageId) return [];
+      const { data, error } = await supabase
+        .from("policy_revisions")
+        .select("*")
+        .eq("page_id", pageId)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },

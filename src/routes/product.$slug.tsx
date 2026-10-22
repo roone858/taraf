@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
-  Flame,
   Layers,
   Minus,
   Plus,
@@ -121,7 +120,6 @@ function ProductPage() {
   // The struck-through original price only makes sense while the product's own (sale) price applies
   const onSale =
     p.sale_price != null && Number(p.sale_price) < Number(p.price) && !selectedSize?.price;
-  const discount = onSale ? Math.round((1 - Number(p.sale_price) / Number(p.price)) * 100) : 0;
   const showFrom = needSize && !size && range.min !== range.max;
   const unavailable =
     p.availability === "unavailable" || (p.availability === "in_stock" && p.stock <= 0);
@@ -199,22 +197,7 @@ function ProductPage() {
       </div>
 
       <div className="mx-auto grid max-w-7xl gap-8 px-5 pb-16 pt-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-16 lg:px-10 lg:pb-24 lg:pt-8">
-        <Gallery
-          images={p.images}
-          name={p.name}
-          badges={
-            <>
-              {onSale && (
-                <span className="bg-gold px-2.5 py-1 text-xs text-ink">خصم {discount}٪</span>
-              )}
-              {p.is_bestseller && (
-                <span className="flex items-center gap-1 bg-ivory/95 px-2.5 py-1 text-xs text-navy">
-                  <Flame className="h-3 w-3 text-gold" /> الأكثر مبيعاً
-                </span>
-              )}
-            </>
-          }
-        />
+        <Gallery images={p.images} name={p.name} />
 
         <div className="min-w-0 lg:pt-2">
           <h1 className="font-display text-3xl leading-tight text-navy [text-wrap:balance] sm:text-4xl lg:text-5xl">
@@ -223,11 +206,11 @@ function ProductPage() {
 
           <div className="mt-5 flex flex-wrap items-baseline gap-x-3 gap-y-1" aria-live="polite">
             {showFrom && <span className="text-sm text-muted-foreground">يبدأ من</span>}
-            <span className="text-2xl text-navy tabular-nums sm:text-3xl">
+            <span className="font-price text-2xl text-navy tabular-nums sm:text-3xl">
               {formatPrice(showFrom ? range.min : price, currency)}
             </span>
             {onSale && !showFrom && (
-              <span className="text-muted-foreground line-through tabular-nums">
+              <span className="font-price text-muted-foreground line-through tabular-nums">
                 {formatPrice(Number(p.price), currency)}
               </span>
             )}
@@ -430,15 +413,7 @@ function ProductPage() {
 }
 
 /** Main photo with arrows, swipe and arrow-key navigation, plus a thumbnail strip. */
-function Gallery({
-  images,
-  name,
-  badges,
-}: {
-  images: string[];
-  name: string;
-  badges: React.ReactNode;
-}) {
+function Gallery({ images, name }: { images: string[]; name: string }) {
   const [i, setI] = useState(0);
   const touchX = useRef<number | null>(null);
   const n = images.length;
@@ -474,7 +449,6 @@ function Gallery({
             className="h-full w-full animate-in object-cover fade-in duration-500"
           />
         )}
-        <div className="absolute top-3 start-3 flex flex-col items-start gap-1.5">{badges}</div>
         {n > 1 && (
           <>
             <button

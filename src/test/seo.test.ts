@@ -26,8 +26,8 @@ describe("seo helpers", () => {
   });
 
   it("applies the title template, but not to the bare store name", () => {
-    expect(fullTitle(seo, "طرف", "كنبة")).toBe("كنبة | طرف");
-    expect(fullTitle(seo, "طرف", "طرف")).toBe("طرف");
+    expect(fullTitle(seo, "ترف", "كنبة")).toBe("كنبة | ترف");
+    expect(fullTitle(seo, "ترف", "ترف")).toBe("ترف");
   });
 
   it("clips long descriptions at a word boundary", () => {
@@ -41,20 +41,20 @@ describe("seo helpers", () => {
   it("builds absolute canonical and share-image URLs, and drops canonical on noindex", () => {
     const head = pageHead({
       seo,
-      store: "طرف",
+      store: "ترف",
       title: "كنبة",
       path: "/product/sofa",
       image: "/a.jpg",
     });
     expect(head.links).toEqual([{ rel: "canonical", href: "https://taraf.sa/product/sofa" }]);
     expect(head.meta).toContainEqual({ property: "og:image", content: "https://taraf.sa/a.jpg" });
-    const hidden = pageHead({ seo, store: "طرف", title: "x", path: "/shop", noindex: true });
+    const hidden = pageHead({ seo, store: "ترف", title: "x", path: "/shop", noindex: true });
     expect(hidden.links).toEqual([]);
     expect(hidden.meta).toContainEqual({ name: "robots", content: "noindex, follow" });
   });
 
   it("escapes < inside JSON-LD so page text can't close the script tag", () => {
-    const head = pageHead({ seo, store: "طرف", jsonLd: [{ name: "</script><b>" }] });
+    const head = pageHead({ seo, store: "ترف", jsonLd: [{ name: "</script><b>" }] });
     expect(head.scripts[0]?.children).not.toContain("</script>");
   });
 

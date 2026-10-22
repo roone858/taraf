@@ -14,7 +14,7 @@ export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const [settings, products, categories] = await Promise.all([
+        const [settings, products, categories, policies] = await Promise.all([
           supabase.from("store_settings").select("seo, updated_at").eq("id", 1).maybeSingle(),
           supabase
             .from("products")
@@ -27,8 +27,13 @@ export const Route = createFileRoute("/sitemap.xml")({
             .select("slug, created_at")
             .eq("is_active", true)
             .order("sort_order"),
+          supabase
+            .from("policy_pages")
+            .select("slug, language, updated_at")
+            .eq("status", "published")
+            .order("sort_order"),
         ]);
-        if (products.error || categories.error) {
+        if (products.error || categories.error || policies.error) {
           return new Response("Sitemap unavailable", {
             status: 503,
             headers: { "Retry-After": "300" },
@@ -51,6 +56,9 @@ export const Route = createFileRoute("/sitemap.xml")({
           url("/custom", day(settings.data?.updated_at)),
           ...categories.data.map((c) =>
             url(`/shop?cat=${encodeURIComponent(c.slug)}`, day(latest)),
+          ),
+          ...policies.data.map((p) =>
+            url(p.language === "en" ? `/en/${p.slug}` : `/${p.slug}`, day(p.updated_at)),
           ),
           ...products.data.map((p) =>
             url(

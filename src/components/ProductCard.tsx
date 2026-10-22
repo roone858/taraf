@@ -82,21 +82,25 @@ export function ProductCard({ p, currency }: { p: Product; currency?: string | u
               className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-700 group-hover:opacity-100"
             />
           )}
-          <div className="absolute top-3 start-3 flex flex-col items-start gap-1.5">
+          <div className="absolute top-2 start-2 flex flex-col items-start gap-1">
             {onSale && (
-              <span className="bg-gold px-2.5 py-1 text-xs text-ink">خصم {discount}٪</span>
+              <span className="bg-gold/90 px-1.5 py-0.5 text-[10px] leading-4 text-ink">
+                خصم {discount}٪
+              </span>
             )}
             {p.is_bestseller && (
-              <span className="flex items-center gap-1 bg-ivory/95 px-2.5 py-1 text-xs text-navy">
-                <Flame className="h-3 w-3 text-gold" /> الأكثر مبيعاً
+              <span className="flex items-center gap-0.5 bg-ivory/90 px-1.5 py-0.5 text-[10px] leading-4 text-navy">
+                <Flame className="h-2.5 w-2.5 text-gold" /> الأكثر مبيعاً
               </span>
             )}
             {p.is_featured && !onSale && !p.is_bestseller && (
-              <span className="bg-navy/85 px-2.5 py-1 text-xs text-cream">مميز</span>
+              <span className="bg-navy/85 px-1.5 py-0.5 text-[10px] leading-4 text-cream">
+                مميز
+              </span>
             )}
           </div>
           {unavailable && (
-            <span className="absolute top-3 end-3 bg-ink/80 px-2.5 py-1 text-xs text-cream">
+            <span className="absolute top-2 end-2 bg-ink/80 px-1.5 py-0.5 text-[10px] leading-4 text-cream">
               غير متوفر
             </span>
           )}
@@ -112,11 +116,11 @@ export function ProductCard({ p, currency }: { p: Product; currency?: string | u
           </Link>
           <div className="mt-1 flex flex-wrap items-baseline gap-x-3 text-sm">
             {fromPrice && <span className="text-xs text-muted-foreground">يبدأ من</span>}
-            <span className="text-navy">
+            <span className="font-price text-navy">
               {formatPrice(fromPrice ? range.min : price, currency)}
             </span>
             {onSale && !fromPrice && (
-              <span className="text-xs text-muted-foreground line-through">
+              <span className="font-price text-xs text-muted-foreground line-through">
                 {formatPrice(Number(p.price), currency)}
               </span>
             )}
@@ -186,7 +190,7 @@ export function ProductCard({ p, currency }: { p: Product; currency?: string | u
                   <>
                     <span className="min-w-0 truncate text-navy">{selected.label}</span>
                     {range.min !== range.max && (
-                      <span className="ms-auto shrink-0 text-[0.7rem] text-muted-foreground tabular-nums sm:text-xs">
+                      <span className="font-price ms-auto shrink-0 text-[0.7rem] text-muted-foreground tabular-nums sm:text-xs">
                         {formatPrice(selected.price ?? effectivePrice(p), currency)}
                       </span>
                     )}
