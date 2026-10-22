@@ -40,12 +40,15 @@ export function CustomRequestForm({
   types,
   initialType,
   whatsapp,
+  allowOther = true,
 }: {
-  /** Furniture types to choose from (category names); «قطعة أخرى» is always offered. */
+  /** Furniture types to choose from (category names). */
   types: string[];
   initialType?: string | undefined;
   /** Store WhatsApp number (digits), or null when not set. */
   whatsapp: string | null;
+  /** Also offer «قطعة أخرى». */
+  allowOther?: boolean;
 }) {
   const [refs, setRefs] = useState<Ref[]>([]);
   const [busy, setBusy] = useState(false);
@@ -225,7 +228,7 @@ export function CustomRequestForm({
                   {t}
                 </option>
               ))}
-              <option value="قطعة أخرى">قطعة أخرى</option>
+              {allowOther && <option value="قطعة أخرى">قطعة أخرى</option>}
             </select>
           )}
         </Input>

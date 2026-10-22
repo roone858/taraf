@@ -73,7 +73,7 @@ export function SiteFooter() {
             </li>
             <li>
               <Link to="/custom" className={link}>
-                التفصيل حسب الطلب
+                غرف النوم والدريسنج روم (تفصيل)
               </Link>
             </li>
             <li>

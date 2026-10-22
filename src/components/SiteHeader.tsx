@@ -175,7 +175,7 @@ export function SiteHeader() {
               {[
                 { to: "/", label: "الرئيسية", exact: true },
                 { to: "/shop", label: "المتجر", exact: false },
-                { to: "/custom", label: "التفصيل حسب الطلب", exact: false },
+                { to: "/custom", label: "غرف النوم والدريسنج روم (تفصيل)", exact: false },
               ].map(({ to, label, exact }) => (
                 <li key={to}>
                   <Link

@@ -56,7 +56,7 @@ export const DEFAULT_HOME: HomeConfig = {
     {
       id: "custom",
       visible: true,
-      eyebrow: "قطعة بمقاسات مساحتك، بالخامة والقماش واللون الذي تختاره.",
+      eyebrow: "سرير أو دولاب ملابس أو مرتبة بمقاسات مساحتك، بالخامة والقماش واللون الذي تختاره.",
       title: "أنت تختار الفكرة، ونحن نهتم بالتفاصيل.",
     },
     { id: "faq", visible: true, eyebrow: "مساعدة", title: "الأسئلة الشائعة" },

@@ -16,23 +16,25 @@ import { WhatsappIcon } from "@/components/BrandIcons";
 import { FaqSection, type FaqItem } from "@/components/FaqSection";
 import { CustomRequestForm } from "@/components/CustomRequestForm";
 
+/** What the custom-order service focuses on (category slugs, in display order). */
+const FOCUS_SLUGS = ["beds", "dressing-rooms", "mattresses"];
+
 const TITLE = "أنت تختار الفكرة، ونحن نهتم بالتفاصيل.";
 
 /**
- * What the catalogue already makes to order: the categories that have made-to-order pieces, and
- * the fabrics those pieces are offered in. Shown as evidence, never as a full list of capabilities.
+ * What the catalogue already makes to order: how many made-to-order pieces there are, and the
+ * fabrics those pieces are offered in. Shown as evidence, never as a full list of capabilities.
  */
 const madeToOrderQuery = queryOptions({
   queryKey: ["products", "made-to-order-summary"],
   queryFn: async () => {
     const { data, error } = await supabase
       .from("products")
-      .select("category_id, colors")
+      .select("colors")
       .eq("is_published", true)
       .eq("availability", "made_to_order")
       .limit(1000);
     if (error) throw error;
-    const categoryIds = new Set(data.flatMap((p) => (p.category_id ? [p.category_id] : [])));
     // «قماش مخمل» and «مخمل» are the same fabric; colour codes (pc-656) are left out
     const fabrics = new Set<string>();
     for (const p of data)
@@ -40,7 +42,7 @@ const madeToOrderQuery = queryOptions({
         const v = c.replace(/^قماش\s+/, "").trim();
         if (/قماش/.test(c) || /^(شانيل|مخمل|خيش|كتان|جلد)/.test(v)) fabrics.add(v);
       }
-    return { count: data.length, categoryIds: [...categoryIds], fabrics: [...fabrics].slice(0, 8) };
+    return { count: data.length, fabrics: [...fabrics].slice(0, 8) };
   },
 });
 
@@ -62,7 +64,7 @@ export const Route = createFileRoute("/custom")({
       seo,
       store,
       title: "التفصيل حسب الطلب",
-      description: `صمّم قطعة الأثاث التي تناسب مساحتك مع ${store}: اختر المقاسات والخامات والأقمشة والتشطيب، وأرسل فكرتك ليراجعها فريقنا ويتواصل معك.`,
+      description: `فصّل سريرك ودولاب ملابسك ومرتبتك بمقاسات مساحتك مع ${store}: اختر المقاسات والخامات والأقمشة والتشطيب، وأرسل فكرتك ليراجعها فريقنا ويتواصل معك.`,
       path: "/custom",
       jsonLd: [
         breadcrumbJsonLd(seo, [
@@ -120,7 +122,7 @@ const STEPS = [
 const SPECS = [
   ["الأبعاد", "العرض والعمق والارتفاع بالسنتيمتر، لتناسب القطعة مساحتك تماماً."],
   ["الخامات", "نوع الخشب أو الهيكل الذي تفضله، أو اترك الاختيار لاقتراحات فريقنا."],
-  ["الأقمشة", "ملمس القماش ونوعه للكنب والأسرّة والكراسي."],
+  ["الأقمشة", "ملمس القماش ونوعه لظهر السرير وإطاره، ولكسوة المرتبة."],
   ["الألوان", "درجة اللون التي تنسجم مع مساحتك، للقماش أو الخشب."],
   ["التشطيبات", "لمسة السطح النهائية: مطفي أو لامع، ودرجة الصباغة والتفاصيل."],
 ] as const;
@@ -137,9 +139,9 @@ function CustomPage() {
     ? `https://wa.me/${wa}?text=${encodeURIComponent("مرحباً، أرغب في تفصيل قطعة أثاث")}`
     : null;
 
-  // Categories with made-to-order pieces; all active ones until that is known
-  const customCats = cats?.filter((c) => !mto || mto.categoryIds.includes(c.id)) ?? [];
-  const types = (customCats.length ? customCats : (cats ?? [])).map((c) => c.name);
+  // Only the focus categories that are active in the store, in FOCUS_SLUGS order
+  const customCats = FOCUS_SLUGS.flatMap((slug) => cats?.find((c) => c.slug === slug) ?? []);
+  const types = customCats.map((c) => c.name);
   const initialType = cats?.find((c) => c.slug === type)?.name;
   const [craftMain, craftInset] = cfg.storyImages;
   const heroImage = craftMain || s?.hero_image_url || "/images/hero.jpg";
@@ -164,8 +166,8 @@ function CustomPage() {
               className="fade-up mt-6 max-w-xl text-base leading-loose text-cream/80 md:text-lg"
               style={{ animationDelay: ".2s" }}
             >
-              قطعة بمقاسات مساحتك، بالخامة والقماش واللون الذي تختاره. أرسل فكرتك، ويتولى فريق ترف
-              التفاصيل من المراجعة إلى التصنيع.
+              سرير أو دولاب ملابس أو مرتبة بمقاسات مساحتك، بالخامة والقماش واللون الذي تختاره. أرسل
+              فكرتك، ويتولى فريق ترف التفاصيل من المراجعة إلى التصنيع.
             </p>
             <div
               className="fade-up mt-9 flex flex-wrap gap-3 md:gap-4"
@@ -225,7 +227,7 @@ function CustomPage() {
                 ماذا نفصّل لك؟
               </h2>
               <p className="mt-3 max-w-xl text-muted-foreground">
-                اختر الفئة لنبدأ بها طلبك، أو اطلب قطعة أخرى من خارجها.
+                نفصّل غرف النوم ودواليب الملابس والمراتب. اختر ما تريد لنبدأ به طلبك.
               </p>
             </div>
             {mto && mto.count > 0 && (
@@ -239,7 +241,7 @@ function CustomPage() {
               </Link>
             )}
           </div>
-          <ul className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
+          <ul className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
             {customCats.map((c) => (
               <li key={c.id} className="w-[68%] shrink-0 snap-start sm:w-auto">
                 <Link
@@ -487,7 +489,13 @@ function CustomPage() {
               </div>
             )}
           </div>
-          <CustomRequestForm types={types} initialType={initialType} whatsapp={wa} />
+          <CustomRequestForm
+            types={types}
+            initialType={initialType}
+            whatsapp={wa}
+            // Fallback only: offer a free choice if the focus categories are missing
+            allowOther={types.length === 0}
+          />
         </div>
       </section>
 
