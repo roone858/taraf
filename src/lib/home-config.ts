@@ -6,6 +6,7 @@ export const SECTION_IDS = [
   "bestsellers",
   "offers",
   "featured",
+  "custom",
   "story",
   "testimonials",
   "faq",
@@ -30,6 +31,7 @@ export const SECTION_META: Record<SectionId, { name: string; source: string }> =
   bestsellers: { name: "الأكثر مبيعاً", source: "المنتجات المعلّمة 🔥 في صفحة المنتجات" },
   offers: { name: "عروض وتخفيضات", source: "تلقائياً: المنتجات التي لها سعر عرض" },
   featured: { name: "مختارات", source: "المنتجات المعلّمة ⭐ مميز" },
+  custom: { name: "التفصيل حسب الطلب", source: "رابط إلى صفحة التفصيل" },
   story: { name: "قصتنا", source: "نص وصور تكتبها هنا" },
   testimonials: { name: "آراء العملاء", source: "صفحة آراء العملاء" },
   faq: { name: "الأسئلة الشائعة", source: "صفحة الأسئلة الشائعة" },
@@ -51,6 +53,12 @@ export const DEFAULT_HOME: HomeConfig = {
     { id: "story", visible: true, eyebrow: "قصتنا", title: "" },
     { id: "offers", visible: true, eyebrow: "عروض وتخفيضات", title: "خصومات على قطع مختارة" },
     { id: "featured", visible: true, eyebrow: "مختارات", title: "قطع مميزة" },
+    {
+      id: "custom",
+      visible: true,
+      eyebrow: "قطعة بمقاسات مساحتك، بالخامة والقماش واللون الذي تختاره.",
+      title: "أنت تختار الفكرة، ونحن نهتم بالتفاصيل.",
+    },
     { id: "faq", visible: true, eyebrow: "مساعدة", title: "الأسئلة الشائعة" },
     { id: "testimonials", visible: true, eyebrow: "آراء عملائنا", title: "ثقة تُبنى بالتفاصيل" },
     { id: "gallery", visible: true, eyebrow: "", title: "" },
@@ -97,7 +105,16 @@ export function parseHomeConfig(raw: Json | undefined | null): HomeConfig {
       title: str(s["title"], d.title),
     });
   }
-  for (const d of DEFAULT_HOME.sections) if (!seen.has(d.id)) sections.push({ ...d });
+  // Sections the stored config doesn't know yet go in after their nearest default predecessor
+  DEFAULT_HOME.sections.forEach((d, i) => {
+    if (seen.has(d.id)) return;
+    const prev = DEFAULT_HOME.sections
+      .slice(0, i)
+      .reverse()
+      .find((p) => seen.has(p.id));
+    sections.splice(prev ? sections.findIndex((x) => x.id === prev.id) + 1 : 0, 0, { ...d });
+    seen.add(d.id);
+  });
 
   return {
     hero: {

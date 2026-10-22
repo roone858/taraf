@@ -53,6 +53,63 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_requests: {
+        Row: {
+          admin_notes: string | null
+          budget: string | null
+          city: string
+          created_at: string
+          customer_name: string
+          description: string
+          dimensions: string | null
+          email: string | null
+          furniture_type: string
+          id: string
+          materials: string | null
+          phone: string
+          reference_images: string[]
+          request_number: string
+          status: Database["public"]["Enums"]["custom_request_status"]
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          budget?: string | null
+          city: string
+          created_at?: string
+          customer_name: string
+          description: string
+          dimensions?: string | null
+          email?: string | null
+          furniture_type: string
+          id?: string
+          materials?: string | null
+          phone: string
+          reference_images?: string[]
+          request_number?: string
+          status?: Database["public"]["Enums"]["custom_request_status"]
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          budget?: string | null
+          city?: string
+          created_at?: string
+          customer_name?: string
+          description?: string
+          dimensions?: string | null
+          email?: string | null
+          furniture_type?: string
+          id?: string
+          materials?: string | null
+          phone?: string
+          reference_images?: string[]
+          request_number?: string
+          status?: Database["public"]["Enums"]["custom_request_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       faqs: {
         Row: {
           answer: string
@@ -289,6 +346,7 @@ export type Database = {
           contact_email: string | null
           contact_phone: string | null
           currency: string
+          custom_projects: Json
           delivery_fee: number
           facebook_url: string | null
           hero_image_url: string | null
@@ -314,6 +372,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           currency?: string
+          custom_projects?: Json
           delivery_fee?: number
           facebook_url?: string | null
           hero_image_url?: string | null
@@ -339,6 +398,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           currency?: string
+          custom_projects?: Json
           delivery_fee?: number
           facebook_url?: string | null
           hero_image_url?: string | null
@@ -431,6 +491,12 @@ export type Database = {
         }
         Returns: string
       }
+      submit_custom_request: {
+        Args: {
+          _request: Json
+        }
+        Returns: string
+      }
       set_order_status: {
         Args: {
           _order_id: string
@@ -441,6 +507,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin"
+      custom_request_status:
+        | "new"
+        | "contacted"
+        | "quoted"
+        | "in_production"
+        | "delivered"
+        | "closed"
       order_status: "new" | "confirmed" | "in_production" | "delivered" | "cancelled"
     }
     CompositeTypes: {
@@ -570,6 +643,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin"],
+      custom_request_status: ["new", "contacted", "quoted", "in_production", "delivered", "closed"],
       order_status: ["new", "confirmed", "in_production", "delivered", "cancelled"],
     },
   },

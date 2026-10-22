@@ -71,6 +71,11 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
+              <Link to="/custom" className={link}>
+                التفصيل حسب الطلب
+              </Link>
+            </li>
+            <li>
               <button type="button" onClick={() => setOpen(true)} className={link}>
                 سلة التسوق
               </button>

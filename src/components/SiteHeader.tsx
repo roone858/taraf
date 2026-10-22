@@ -22,7 +22,8 @@ export function SiteHeader() {
   const { open: menu, setOpen: setMenu } = useSiteMenu();
   const [search, setSearch] = useState(false);
   const [q, setQ] = useState("");
-  const overHero = loc.pathname === "/" && !scrolled;
+  // Pages that open on a dark full-bleed hero keep the header transparent until scrolled
+  const overHero = (loc.pathname === "/" || loc.pathname === "/custom") && !scrolled;
 
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 40);
@@ -70,7 +71,10 @@ export function SiteHeader() {
           <Link to="/shop" className="hover:text-gold" activeProps={{ className: "text-gold" }}>
             المتجر
           </Link>
-          {cats?.slice(0, 4).map((c) => (
+          <Link to="/custom" className="hover:text-gold" activeProps={{ className: "text-gold" }}>
+            التفصيل
+          </Link>
+          {cats?.slice(0, 3).map((c) => (
             <Link key={c.id} to="/shop" search={{ cat: c.slug }} className="hover:text-gold">
               {c.name}
             </Link>
@@ -160,6 +164,7 @@ export function SiteHeader() {
               {[
                 { to: "/", label: "الرئيسية", exact: true },
                 { to: "/shop", label: "المتجر", exact: false },
+                { to: "/custom", label: "التفصيل حسب الطلب", exact: false },
               ].map(({ to, label, exact }) => (
                 <li key={to}>
                   <Link

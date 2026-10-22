@@ -5,13 +5,29 @@ import { faqsQuery, settingsQuery } from "@/lib/data";
 import { normalizeWhatsappNumber } from "@/lib/whatsapp";
 import { WhatsappIcon } from "./BrandIcons";
 
-/** Shop-page FAQ, managed from Admin → الأسئلة الشائعة. Renders nothing until at least one is published. */
+export type FaqItem = { id: string; question: string; answer: string };
+
+/**
+ * FAQ accordion. By default shows the questions managed from Admin → الأسئلة الشائعة; a page can
+ * pass its own `items` instead. Renders nothing until there is at least one question.
+ */
 export function FaqSection({
   eyebrow = "مساعدة",
   title = "الأسئلة الشائعة",
-}: { eyebrow?: string; title?: string } = {}) {
-  const { data: faqs } = useQuery(faqsQuery);
+  intro = "إجابات سريعة عن الطلب والتوصيل والتصنيع حسب الطلب.",
+  askMessage = "مرحباً، لدي سؤال عن منتجاتكم",
+  items,
+}: {
+  eyebrow?: string;
+  title?: string;
+  intro?: string;
+  /** Prefilled WhatsApp text of the «تواصل معنا» button. */
+  askMessage?: string;
+  items?: FaqItem[];
+} = {}) {
+  const { data: managed } = useQuery({ ...faqsQuery, enabled: !items });
   const { data: s } = useQuery(settingsQuery);
+  const faqs = items ?? managed;
   if (!faqs?.length) return null;
 
   const wa = normalizeWhatsappNumber(s?.whatsapp_number);
@@ -44,9 +60,7 @@ export function FaqSection({
               {eyebrow}
             </p>
           )}
-          <p className="mt-4 max-w-sm leading-relaxed text-cream/75">
-            إجابات سريعة عن الطلب والتوصيل والتصنيع حسب الطلب.
-          </p>
+          <p className="mt-4 max-w-sm leading-relaxed text-cream/75">{intro}</p>
         </div>
 
         <AccordionPrimitive.Root
@@ -86,7 +100,7 @@ export function FaqSection({
             <p className="text-cream">لم تجد إجابتك؟</p>
             <p className="mt-1 text-sm text-cream/65">فريقنا يرد على استفساراتك عبر واتساب.</p>
             <a
-              href={`https://wa.me/${wa}?text=${encodeURIComponent("مرحباً، لدي سؤال عن منتجاتكم")}`}
+              href={`https://wa.me/${wa}?text=${encodeURIComponent(askMessage)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-4 inline-flex h-11 items-center gap-2 bg-gold px-5 text-sm text-ink transition-colors hover:bg-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-ink"

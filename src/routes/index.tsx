@@ -16,6 +16,7 @@ import {
   type Product,
 } from "@/lib/data";
 import { parseHomeConfig, type SectionConfig, type SectionId } from "@/lib/home-config";
+import { parseProjects } from "@/lib/custom-requests";
 import { cn } from "@/lib/utils";
 import { pageHead, storeJsonLd } from "@/lib/seo";
 import { loadSeo } from "@/lib/seo-loader";
@@ -170,6 +171,79 @@ function Home() {
           currency={currency}
         />
       ) : null,
+
+    custom: (c) => {
+      const image =
+        parseProjects(s?.custom_projects)[0]?.image || cfg.gallery[0] || "/images/cat-living.jpg";
+      return (
+        <section
+          className="border-y hairline py-16 md:py-24"
+          aria-labelledby={c.title ? "custom-title" : undefined}
+        >
+          <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-16 lg:px-10">
+            {/* Framed photograph crossed by a measuring line, as on /custom */}
+            <figure className="relative pb-5">
+              <div className="border hairline p-2">
+                <img
+                  src={image}
+                  alt="قطعة أثاث مفصّلة من ترف"
+                  loading="lazy"
+                  className="aspect-[4/3] w-full object-cover md:aspect-[5/4]"
+                />
+              </div>
+              <div aria-hidden className="absolute inset-x-6 bottom-0 flex items-center gap-2">
+                <span className="h-3 w-px bg-gold" />
+                <span className="h-px flex-1 bg-gold/70" />
+                <span className="bg-background px-2 text-xs tracking-widest text-navy">بمقاسك</span>
+                <span className="h-px flex-1 bg-gold/70" />
+                <span className="h-3 w-px bg-gold" />
+              </div>
+            </figure>
+            <div>
+              {c.title && (
+                <h2
+                  id="custom-title"
+                  className="font-display text-3xl text-navy text-balance md:text-5xl"
+                >
+                  {c.title}
+                </h2>
+              )}
+              {c.eyebrow && (
+                <p className="mt-4 max-w-xl leading-relaxed text-muted-foreground">{c.eyebrow}</p>
+              )}
+              <ol className="mt-8 space-y-3 border-t border-navy/15 pt-6">
+                {[
+                  "أرسل فكرتك ومقاساتك",
+                  "نراجعها معك ونرسل السعر والمدة",
+                  "نصنعها بعد موافقتك",
+                ].map((step, i) => (
+                  <li key={step} className="flex items-center gap-4 text-navy">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-gold/60 font-display text-lg">
+                      {(i + 1).toLocaleString("ar-EG")}
+                    </span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+              <div className="mt-9 flex flex-wrap gap-3">
+                <Button asChild className="h-12 flex-1 px-8 sm:flex-none">
+                  <Link to="/custom" hash="request">
+                    ابدأ طلب التفصيل
+                  </Link>
+                </Button>
+                <Link
+                  to="/custom"
+                  className="group inline-flex h-12 flex-1 items-center justify-center gap-1.5 text-sm text-navy underline decoration-gold underline-offset-[6px] transition-colors hover:decoration-navy sm:flex-none sm:px-4"
+                >
+                  كيف يعمل التفصيل
+                  <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-1" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    },
 
     story: (c) => {
       const [main, inset] = cfg.storyImages;

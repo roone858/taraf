@@ -13,6 +13,7 @@ import {
   Menu,
   MessageSquareQuote,
   Package,
+  Ruler,
   Settings,
   X,
   ArrowRight,
@@ -115,7 +116,10 @@ const NAV_GROUPS = [
   },
   {
     title: "المبيعات",
-    items: [{ to: "/admin/orders", label: "الطلبات", Icon: ClipboardList, badge: "newOrders" }],
+    items: [
+      { to: "/admin/orders", label: "الطلبات", Icon: ClipboardList, badge: "newOrders" },
+      { to: "/admin/custom", label: "طلبات التفصيل", Icon: Ruler, badge: "newCustom" },
+    ],
   },
   {
     title: "الكتالوج",
@@ -154,12 +158,25 @@ function AdminShell({ email }: { email: string | undefined }) {
     },
     refetchInterval: 60_000,
   });
+  const { data: newCustom = 0 } = useQuery({
+    queryKey: ["admin", "new-custom-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("custom_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "new");
+      if (error) throw error;
+      return count ?? 0;
+    },
+    refetchInterval: 60_000,
+  });
+  const badges = { newOrders, newCustom };
 
   return (
     <div className="flex min-h-screen flex-col bg-cream md:flex-row">
       {/* Desktop sidebar */}
       <aside className="hidden bg-silk text-cream md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:border-e md:hairline">
-        <SidebarBody email={email} newOrders={newOrders} />
+        <SidebarBody email={email} badges={badges} />
       </aside>
 
       {/* Mobile top bar + drawer */}
@@ -173,7 +190,7 @@ function AdminShell({ email }: { email: string | undefined }) {
           aria-label="القائمة"
         >
           <Menu className="h-6 w-6" />
-          {newOrders > 0 && (
+          {newOrders + newCustom > 0 && (
             <span className="absolute top-1.5 end-1.5 h-2.5 w-2.5 rounded-full bg-gold" />
           )}
         </button>
@@ -185,7 +202,7 @@ function AdminShell({ email }: { email: string | undefined }) {
           className="flex w-72 border-s-0 bg-silk p-0 text-cream [&>button]:hidden"
         >
           <SheetTitle className="sr-only">القائمة</SheetTitle>
-          <SidebarBody email={email} newOrders={newOrders} onClose={() => setMenu(false)} />
+          <SidebarBody email={email} badges={badges} onClose={() => setMenu(false)} />
         </SheetContent>
       </Sheet>
 
@@ -198,11 +215,11 @@ function AdminShell({ email }: { email: string | undefined }) {
 
 function SidebarBody({
   email,
-  newOrders,
+  badges,
   onClose,
 }: {
   email: string | undefined;
-  newOrders: number;
+  badges: { newOrders: number; newCustom: number };
   onClose?: () => void;
 }) {
   const item =
@@ -230,7 +247,7 @@ function SidebarBody({
             <p className="mb-2 px-3 text-[0.65rem] tracking-[0.2em] text-gold/80">{g.title}</p>
             <ul className="space-y-0.5">
               {g.items.map((it) => {
-                const count = "badge" in it && it.badge === "newOrders" ? newOrders : 0;
+                const count = "badge" in it ? badges[it.badge] : 0;
                 return (
                   <li key={it.to}>
                     <Link

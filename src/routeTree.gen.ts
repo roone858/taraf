@@ -12,11 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as CustomRouteImport } from './routes/custom'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
+import { Route as AdminCustomRouteImport } from './routes/admin.custom'
 import { Route as AdminFaqsRouteImport } from './routes/admin.faqs'
 import { Route as AdminHomeRouteImport } from './routes/admin.home'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
@@ -43,6 +45,11 @@ const CheckoutRoute = CheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CustomRoute = CustomRouteImport.update({
+  id: '/custom',
+  path: '/custom',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
   id: '/robots.txt',
   path: '/robots.txt',
@@ -66,6 +73,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCustomRoute = AdminCustomRouteImport.update({
+  id: '/custom',
+  path: '/custom',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminFaqsRoute = AdminFaqsRouteImport.update({
@@ -123,10 +135,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/checkout': typeof CheckoutRoute
+  '/custom': typeof CustomRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/shop': typeof ShopRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/custom': typeof AdminCustomRoute
   '/admin/faqs': typeof AdminFaqsRoute
   '/admin/home': typeof AdminHomeRoute
   '/admin/orders': typeof AdminOrdersRoute
@@ -142,10 +156,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/checkout': typeof CheckoutRoute
+  '/custom': typeof CustomRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/shop': typeof ShopRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/custom': typeof AdminCustomRoute
   '/admin/faqs': typeof AdminFaqsRoute
   '/admin/home': typeof AdminHomeRoute
   '/admin/orders': typeof AdminOrdersRoute
@@ -163,10 +179,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/checkout': typeof CheckoutRoute
+  '/custom': typeof CustomRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/shop': typeof ShopRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/custom': typeof AdminCustomRoute
   '/admin/faqs': typeof AdminFaqsRoute
   '/admin/home': typeof AdminHomeRoute
   '/admin/orders': typeof AdminOrdersRoute
@@ -185,10 +203,12 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/checkout'
+    | '/custom'
     | '/robots.txt'
     | '/shop'
     | '/sitemap.xml'
     | '/admin/categories'
+    | '/admin/custom'
     | '/admin/faqs'
     | '/admin/home'
     | '/admin/orders'
@@ -204,10 +224,12 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/checkout'
+    | '/custom'
     | '/robots.txt'
     | '/shop'
     | '/sitemap.xml'
     | '/admin/categories'
+    | '/admin/custom'
     | '/admin/faqs'
     | '/admin/home'
     | '/admin/orders'
@@ -224,10 +246,12 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/checkout'
+    | '/custom'
     | '/robots.txt'
     | '/shop'
     | '/sitemap.xml'
     | '/admin/categories'
+    | '/admin/custom'
     | '/admin/faqs'
     | '/admin/home'
     | '/admin/orders'
@@ -245,6 +269,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   CheckoutRoute: typeof CheckoutRoute
+  CustomRoute: typeof CustomRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   ShopRoute: typeof ShopRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -273,6 +298,13 @@ declare module '@tanstack/react-router' {
       path: '/checkout'
       fullPath: '/checkout'
       preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/custom': {
+      id: '/custom'
+      path: '/custom'
+      fullPath: '/custom'
+      preLoaderRoute: typeof CustomRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/robots.txt': {
@@ -308,6 +340,13 @@ declare module '@tanstack/react-router' {
       path: '/categories'
       fullPath: '/admin/categories'
       preLoaderRoute: typeof AdminCategoriesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/custom': {
+      id: '/admin/custom'
+      path: '/custom'
+      fullPath: '/admin/custom'
+      preLoaderRoute: typeof AdminCustomRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/faqs': {
@@ -385,6 +424,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminCategoriesRoute: typeof AdminCategoriesRoute
+  AdminCustomRoute: typeof AdminCustomRoute
   AdminFaqsRoute: typeof AdminFaqsRoute
   AdminHomeRoute: typeof AdminHomeRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
@@ -398,6 +438,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCategoriesRoute: AdminCategoriesRoute,
+  AdminCustomRoute: AdminCustomRoute,
   AdminFaqsRoute: AdminFaqsRoute,
   AdminHomeRoute: AdminHomeRoute,
   AdminOrdersRoute: AdminOrdersRoute,
@@ -415,6 +456,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   CheckoutRoute: CheckoutRoute,
+  CustomRoute: CustomRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   ShopRoute: ShopRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,

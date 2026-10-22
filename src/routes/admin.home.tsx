@@ -14,6 +14,7 @@ import {
   Images,
   MessageSquareQuote,
   RotateCcw,
+  Ruler,
   Star,
   type LucideIcon,
 } from "lucide-react";
@@ -59,6 +60,7 @@ const ICONS: Record<SectionId, LucideIcon> = {
   bestsellers: Flame,
   offers: BadgePercent,
   featured: Star,
+  custom: Ruler,
   story: BookOpen,
   testimonials: MessageSquareQuote,
   faq: HelpCircle,
@@ -71,6 +73,7 @@ const MANAGE: Partial<Record<SectionId, { to: string; label: string }>> = {
   featured: { to: "/admin/products", label: "اختيار المنتجات ⭐" },
   testimonials: { to: "/admin/testimonials", label: "إدارة الآراء" },
   faq: { to: "/admin/faqs", label: "إدارة الأسئلة" },
+  custom: { to: "/admin/custom", label: "طلبات وأعمال التفصيل" },
 };
 const num = new Intl.NumberFormat("ar-EG");
 
@@ -136,6 +139,7 @@ function HomeEditor() {
     bestsellers: bestsellers?.length ?? 0,
     offers: onSale?.length ?? 0,
     featured: featured?.length ?? 0,
+    custom: 1,
     story: d.story_title.trim() || d.story_body.trim() ? 1 : 0,
     testimonials: testimonials?.length ?? 0,
     faq: faqs?.length ?? 0,
@@ -146,6 +150,7 @@ function HomeEditor() {
     bestsellers: (n) => `${num.format(n)} منتج`,
     offers: (n) => `${num.format(n)} منتج عليه عرض`,
     featured: (n) => `${num.format(n)} منتج`,
+    custom: () => "رابط ثابت",
     story: () => "نص مكتوب",
     testimonials: (n) => `${num.format(n)} رأي منشور`,
     faq: (n) => `${num.format(n)} سؤال منشور`,

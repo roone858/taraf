@@ -48,6 +48,7 @@ export const Route = createFileRoute("/sitemap.xml")({
         const entries = [
           url("/", day(settings.data?.updated_at ?? latest)),
           url("/shop", day(latest)),
+          url("/custom", day(settings.data?.updated_at)),
           ...categories.data.map((c) =>
             url(`/shop?cat=${encodeURIComponent(c.slug)}`, day(latest)),
           ),
