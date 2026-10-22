@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   FileText,
   Inbox,
+  Link2,
   Loader2,
   MapPin,
   Pencil,
@@ -31,7 +32,7 @@ import {
   type OrderItem,
   type OrderStatus,
 } from "@/lib/orders";
-import { normalizeWhatsappNumber } from "@/lib/whatsapp";
+import { invoiceUrl, normalizeWhatsappNumber } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -738,6 +739,22 @@ function OrderDialog({
                 <Pencil className="h-4 w-4" /> تعديل
               </Button>
               <SendInvoiceWhatsapp order={order} storeName={storeName} currency={storeCurrency} />
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={async () => {
+                  const url = invoiceUrl(order.invoice_token);
+                  if (!url) return;
+                  try {
+                    await navigator.clipboard.writeText(url);
+                    toast.success("تم نسخ رابط الفاتورة");
+                  } catch {
+                    window.prompt("انسخ رابط الفاتورة:", url);
+                  }
+                }}
+              >
+                <Link2 className="h-4 w-4" /> نسخ الرابط
+              </Button>
               <Button asChild variant="outline" className="gap-2">
                 <Link to="/admin/orders/$id/invoice" params={{ id: order.id }} target="_blank">
                   <FileText className="h-4 w-4" /> الفاتورة

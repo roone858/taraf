@@ -4,6 +4,7 @@ import { ChevronLeft, Menu, Search, ShoppingBag, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Logo } from "./Logo";
 import { WhatsappIcon } from "./BrandIcons";
+import { AccountMenu, AccountMenuSection } from "./AccountMenu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useCart } from "@/lib/cart";
 import { categoriesQuery, settingsQuery } from "@/lib/data";
@@ -47,18 +48,30 @@ export function SiteHeader() {
       )}
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-10">
-        <button
-          type="button"
-          className="-ms-2 flex h-11 w-11 items-center justify-center text-cream transition-colors hover:text-gold lg:hidden"
-          onClick={() => setMenu(true)}
-          aria-label="القائمة"
-          aria-expanded={menu}
-        >
-          <Menu className="h-6 w-6" />
-        </button>
-        <Link to="/" aria-label="الرئيسية">
-          <Logo />
-        </Link>
+        {/* Start side (right in RTL): menu, search, then the logo */}
+        <div className="flex items-center gap-1 sm:gap-2">
+          <button
+            type="button"
+            className="-ms-2 flex h-11 w-11 items-center justify-center text-cream transition-colors hover:text-gold lg:hidden"
+            onClick={() => setMenu(true)}
+            aria-label="القائمة"
+            aria-expanded={menu}
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setSearch((s) => !s)}
+            aria-label="بحث"
+            aria-expanded={search}
+            className="flex h-10 w-10 items-center justify-center text-cream transition-colors hover:text-gold lg:-ms-2"
+          >
+            <Search className="h-5 w-5" />
+          </button>
+          <Link to="/" aria-label="الرئيسية" className="ms-1 lg:ms-2">
+            <Logo />
+          </Link>
+        </div>
         <nav className="hidden items-center gap-9 text-sm text-cream/85 lg:flex">
           <Link
             to="/"
@@ -80,18 +93,16 @@ export function SiteHeader() {
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-4 text-cream">
-          <button onClick={() => setSearch((s) => !s)} aria-label="بحث" className="hover:text-gold">
-            <Search className="h-5 w-5" />
-          </button>
+        <div className="flex items-center gap-2.5 text-cream sm:gap-3.5">
+          <AccountMenu />
           <button
             onClick={() => setOpen(true)}
             aria-label="السلة"
-            className="relative hover:text-gold"
+            className="relative flex h-9 w-9 items-center justify-center hover:text-gold"
           >
             <ShoppingBag className="h-5 w-5" />
             {count > 0 && (
-              <span className="absolute -top-2 -left-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-[0.65rem] text-ink">
+              <span className="absolute -top-0.5 -left-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-[0.65rem] text-ink">
                 {count}
               </span>
             )}
@@ -215,6 +226,7 @@ export function SiteHeader() {
           </nav>
 
           <div className="shrink-0 space-y-2.5 border-t hairline p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
+            <AccountMenuSection onNavigate={() => setMenu(false)} />
             <button
               type="button"
               onClick={() => {

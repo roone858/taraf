@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+import { invoiceUrl } from "@/lib/whatsapp";
 import type { Database } from "@/integrations/supabase/types";
 
 export type Order = Database["public"]["Tables"]["orders"]["Row"];
@@ -63,4 +65,16 @@ export function orderErrorMessage(message: string | undefined): string {
     default:
       return "تعذر إتمام العملية. حاول مرة أخرى.";
   }
+}
+
+/**
+ * Invoice link for an order the visitor just placed (needs its number and the phone it was placed
+ * with). Undefined if it can't be fetched — the order itself is already recorded.
+ */
+export async function fetchInvoiceUrl(orderNumber: string, phone: string) {
+  const { data } = await supabase.rpc("order_invoice_token", {
+    _order_number: orderNumber,
+    _phone: phone.trim(),
+  });
+  return invoiceUrl(data);
 }

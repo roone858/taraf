@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { settingsQuery, type Product } from "@/lib/data";
 import { effectivePrice, formatPrice } from "@/lib/format";
 import { productSizes, unitPrice } from "@/lib/sizes";
-import { orderErrorMessage } from "@/lib/orders";
+import { fetchInvoiceUrl, orderErrorMessage } from "@/lib/orders";
 import { customerSchema, loadCustomer, saveCustomer, type CustomerForm } from "@/lib/customer";
 import { buildOrderMessage, buildWhatsappUrl, normalizeWhatsappNumber } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
@@ -105,12 +105,14 @@ export function QuickOrderDialog({
 
     saveCustomer(f);
     const variant = [size, options].filter(Boolean).join(" / ") || undefined;
+    const invoice = await fetchInvoiceUrl(number, f.phone).catch(() => undefined);
     const message = buildOrderMessage(
       f,
       [{ name: p.name, variant, quantity: qty, unitPrice: price }],
       fee,
       currency,
       number,
+      invoice,
     );
     const url = storePhone ? buildWhatsappUrl(storePhone, message) : null;
     setPlaced({ number, total: subtotal + fee, url });

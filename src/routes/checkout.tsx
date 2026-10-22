@@ -11,13 +11,14 @@ import {
   Loader2,
   ShieldCheck,
   ShoppingBag,
+  FileText,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { settingsQuery, policyKindQuery } from "@/lib/data";
 import { useCart, type CartItem } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import { productSizes, unitPrice } from "@/lib/sizes";
-import { orderErrorMessage } from "@/lib/orders";
+import { fetchInvoiceUrl, orderErrorMessage } from "@/lib/orders";
 import { cn } from "@/lib/utils";
 import { customerSchema, type CustomerForm } from "@/lib/customer";
 import {
@@ -55,6 +56,7 @@ function Checkout() {
     number: string;
     total: number;
     whatsappUrl: string | null;
+    invoiceUrl: string | undefined;
   } | null>(null);
   const honeypot = useRef<HTMLInputElement>(null);
   const phone = normalizeWhatsappNumber(s?.whatsapp_number);
@@ -145,10 +147,16 @@ function Checkout() {
         quantity: i.quantity,
         unitPrice: i.unitPrice,
       }));
+      const invoice = await fetchInvoiceUrl(number, f.phone).catch(() => undefined);
       const whatsappUrl = phone
-        ? buildWhatsappUrl(phone, buildOrderMessage(f, lines, fee, s?.currency, number))
+        ? buildWhatsappUrl(phone, buildOrderMessage(f, lines, fee, s?.currency, number, invoice))
         : null;
-      setPlaced({ number, total: computeTotals(lines, fee).total, whatsappUrl });
+      setPlaced({
+        number,
+        total: computeTotals(lines, fee).total,
+        whatsappUrl,
+        invoiceUrl: invoice,
+      });
       cart.clear();
       window.scrollTo({ top: 0 });
       // May be blocked as a popup after the awaits above; the confirmation screen has a button as fallback
@@ -195,6 +203,16 @@ function Checkout() {
             <p className="mt-6 text-sm leading-relaxed text-navy">
               سيتواصل معك فريقنا قريباً على رقم هاتفك لتأكيد الطلب.
             </p>
+          )}
+          {placed.invoiceUrl && (
+            <a
+              href={placed.invoiceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 flex h-11 items-center justify-center gap-2 border border-navy/15 text-sm text-navy transition-colors hover:border-gold"
+            >
+              <FileText className="h-4 w-4 text-gold" /> عرض الفاتورة
+            </a>
           )}
           <Link
             to="/shop"

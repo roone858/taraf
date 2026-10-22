@@ -1,9 +1,14 @@
-import { buildInvoiceMessage, buildWhatsappUrl, normalizeWhatsappNumber } from "@/lib/whatsapp";
+import {
+  buildInvoiceMessage,
+  buildWhatsappUrl,
+  invoiceUrl,
+  normalizeWhatsappNumber,
+} from "@/lib/whatsapp";
 import { orderStatusLabel, type Order, type OrderItem } from "@/lib/orders";
 import { WhatsappIcon } from "./BrandIcons";
 import { Button } from "@/components/ui/button";
 
-/** Opens a WhatsApp chat with the customer, pre-filled with the invoice as text. */
+/** Opens a WhatsApp chat with the customer, pre-filled with the invoice as text and its link. */
 export function SendInvoiceWhatsapp({
   order,
   storeName,
@@ -29,6 +34,7 @@ export function SendInvoiceWhatsapp({
     subtotal: Number(order.subtotal),
     deliveryFee: Number(order.delivery_fee),
     total: Number(order.total),
+    invoiceUrl: invoiceUrl(order.invoice_token),
   });
 
   return (

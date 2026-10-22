@@ -127,7 +127,8 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { pathname } = useLocation();
-  const isAdmin = pathname.startsWith("/admin");
+  // Admin and printable invoice pages render without the storefront chrome
+  const isAdmin = pathname.startsWith("/admin") || pathname.startsWith("/invoice/");
   return (
     <QueryClientProvider client={queryClient}>
       <CartProvider>
@@ -140,8 +141,13 @@ function RootComponent() {
           {!isAdmin && <MobileBar />}
         </SiteMenuProvider>
         <Toaster position="top-center" />
-        {/* Vercel Web Analytics; admin pages are not counted as site visits */}
-        <Analytics beforeSend={(e) => (new URL(e.url).pathname.startsWith("/admin") ? null : e)} />
+        {/* Vercel Web Analytics; admin pages aren't site visits, and invoice links carry a private token */}
+        <Analytics
+          beforeSend={(e) => {
+            const path = new URL(e.url).pathname;
+            return path.startsWith("/admin") || path.startsWith("/invoice/") ? null : e;
+          }}
+        />
       </CartProvider>
     </QueryClientProvider>
   );

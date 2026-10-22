@@ -302,6 +302,7 @@ export type Database = {
           customer_name: string;
           delivery_fee: number;
           id: string;
+          invoice_token: string;
           notes: string | null;
           order_number: string;
           phone: string;
@@ -320,6 +321,7 @@ export type Database = {
           customer_name: string;
           delivery_fee?: number;
           id?: string;
+          invoice_token?: string;
           notes?: string | null;
           order_number?: string;
           phone: string;
@@ -338,6 +340,7 @@ export type Database = {
           customer_name?: string;
           delivery_fee?: number;
           id?: string;
+          invoice_token?: string;
           notes?: string | null;
           order_number?: string;
           phone?: string;
@@ -598,6 +601,19 @@ export type Database = {
         Args: {
           _order: Json;
           _order_id: string | null;
+        };
+        Returns: string;
+      };
+      get_invoice: {
+        Args: {
+          _token: string;
+        };
+        Returns: Json;
+      };
+      order_invoice_token: {
+        Args: {
+          _order_number: string;
+          _phone: string;
         };
         Returns: string;
       };

@@ -32,6 +32,7 @@ import { Route as AdminTestimonialsRouteImport } from './routes/admin.testimonia
 import { Route as AdminVisitorsRouteImport } from './routes/admin.visitors'
 import { Route as EnSlugRouteImport } from './routes/en.$slug'
 import { Route as EnPoliciesRouteImport } from './routes/en.policies'
+import { Route as InvoiceTokenRouteImport } from './routes/invoice.$token'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AdminOrdersIdInvoiceRouteImport } from './routes/admin_.orders.$id.invoice'
 
@@ -150,6 +151,11 @@ const EnPoliciesRoute = EnPoliciesRouteImport.update({
   path: '/en/policies',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InvoiceTokenRoute = InvoiceTokenRouteImport.update({
+  id: '/invoice/$token',
+  path: '/invoice/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductSlugRoute = ProductSlugRouteImport.update({
   id: '/product/$slug',
   path: '/product/$slug',
@@ -184,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/admin/visitors': typeof AdminVisitorsRoute
   '/en/$slug': typeof EnSlugRoute
   '/en/policies': typeof EnPoliciesRoute
+  '/invoice/$token': typeof InvoiceTokenRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/orders/$id/invoice': typeof AdminOrdersIdInvoiceRoute
@@ -210,6 +217,7 @@ export interface FileRoutesByTo {
   '/admin/visitors': typeof AdminVisitorsRoute
   '/en/$slug': typeof EnSlugRoute
   '/en/policies': typeof EnPoliciesRoute
+  '/invoice/$token': typeof InvoiceTokenRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin': typeof AdminIndexRoute
   '/admin/orders/$id/invoice': typeof AdminOrdersIdInvoiceRoute
@@ -238,6 +246,7 @@ export interface FileRoutesById {
   '/admin/visitors': typeof AdminVisitorsRoute
   '/en/$slug': typeof EnSlugRoute
   '/en/policies': typeof EnPoliciesRoute
+  '/invoice/$token': typeof InvoiceTokenRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/admin_/orders/$id/invoice': typeof AdminOrdersIdInvoiceRoute
@@ -267,6 +276,7 @@ export interface FileRouteTypes {
     | '/admin/visitors'
     | '/en/$slug'
     | '/en/policies'
+    | '/invoice/$token'
     | '/product/$slug'
     | '/admin/'
     | '/admin/orders/$id/invoice'
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | '/admin/visitors'
     | '/en/$slug'
     | '/en/policies'
+    | '/invoice/$token'
     | '/product/$slug'
     | '/admin'
     | '/admin/orders/$id/invoice'
@@ -320,6 +331,7 @@ export interface FileRouteTypes {
     | '/admin/visitors'
     | '/en/$slug'
     | '/en/policies'
+    | '/invoice/$token'
     | '/product/$slug'
     | '/admin/'
     | '/admin_/orders/$id/invoice'
@@ -337,6 +349,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   EnSlugRoute: typeof EnSlugRoute
   EnPoliciesRoute: typeof EnPoliciesRoute
+  InvoiceTokenRoute: typeof InvoiceTokenRoute
   ProductSlugRoute: typeof ProductSlugRoute
   AdminOrdersIdInvoiceRoute: typeof AdminOrdersIdInvoiceRoute
 }
@@ -504,6 +517,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EnPoliciesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invoice/$token': {
+      id: '/invoice/$token'
+      path: '/invoice/$token'
+      fullPath: '/invoice/$token'
+      preLoaderRoute: typeof InvoiceTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/product/$slug': {
       id: '/product/$slug'
       path: '/product/$slug'
@@ -565,6 +585,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   EnSlugRoute: EnSlugRoute,
   EnPoliciesRoute: EnPoliciesRoute,
+  InvoiceTokenRoute: InvoiceTokenRoute,
   ProductSlugRoute: ProductSlugRoute,
   AdminOrdersIdInvoiceRoute: AdminOrdersIdInvoiceRoute,
 }

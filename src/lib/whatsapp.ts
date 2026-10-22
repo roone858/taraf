@@ -32,6 +32,8 @@ export function buildOrderMessage(
   deliveryFee: number,
   currency = "EGP",
   orderNumber?: string,
+  /** Customer-facing invoice page, see invoiceUrl(). */
+  invoiceUrl?: string,
 ) {
   const t = computeTotals(lines, deliveryFee);
   // Plain-text label: the riyal sign may not render on the recipient's phone
@@ -58,6 +60,7 @@ export function buildOrderMessage(
     `رسوم التوصيل: ${f(t.deliveryFee)}`,
     `الإجمالي التقديري: ${f(t.total)}`,
     ...(customer.notes?.trim() ? ["", `ملاحظات: ${customer.notes.trim()}`] : []),
+    ...(invoiceUrl ? ["", `الفاتورة: ${invoiceUrl}`] : []),
   ].join("\n");
 }
 
@@ -72,18 +75,28 @@ export type InvoiceMessageInput = {
   customerName: string;
   statusLabel: string;
   currency: string;
-  items: { product_name: string; variant: string | null; quantity: number; unit_price: number; line_total: number }[];
+  items: {
+    product_name: string;
+    variant: string | null;
+    quantity: number;
+    unit_price: number;
+    line_total: number;
+  }[];
   subtotal: number;
   deliveryFee: number;
   total: number;
+  /** Customer-facing invoice page, see invoiceUrl(). */
+  invoiceUrl?: string | undefined;
 };
 
 /** Plain-text invoice for sending to the customer over WhatsApp (wa.me links can't carry file attachments). */
 export function buildInvoiceMessage(o: InvoiceMessageInput) {
   const f = (n: number) => formatPrice(Number(n), o.currency, { plain: true });
-  const date = new Intl.DateTimeFormat("ar-EG", { year: "numeric", month: "long", day: "numeric" }).format(
-    new Date(o.createdAt),
-  );
+  const date = new Intl.DateTimeFormat("ar-EG", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(o.createdAt));
   const items = o.items
     .map(
       (i, idx) =>
@@ -104,7 +117,14 @@ export function buildInvoiceMessage(o: InvoiceMessageInput) {
     `المجموع الفرعي: ${f(o.subtotal)}`,
     `رسوم التوصيل: ${f(o.deliveryFee)}`,
     `الإجمالي: ${f(o.total)}`,
+    ...(o.invoiceUrl ? ["", `عرض الفاتورة وطباعتها: ${o.invoiceUrl}`] : []),
     "",
     `شكراً لثقتكم في ${o.storeName}`,
   ].join("\n");
+}
+
+/** Public invoice page for an order's invoice_token (absolute, for sharing over WhatsApp). */
+export function invoiceUrl(token: string | null | undefined) {
+  if (!token || typeof window === "undefined") return undefined;
+  return `${window.location.origin}/invoice/${token}`;
 }
