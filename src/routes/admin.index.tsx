@@ -104,7 +104,7 @@ function Overview() {
 
   const stats = [
     {
-      label: "طلبات جديدة",
+      label: "طلبات غير مؤكدة",
       value: newOrders,
       sub: "بانتظار التأكيد",
       Icon: ClipboardList,

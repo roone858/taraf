@@ -76,7 +76,7 @@ export function InvoiceSheet({
       {/* Key facts */}
       <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
         <Fact label="تاريخ الإصدار" value={dateFmt.format(new Date(invoice.created_at))} />
-        <Fact label="حالة الطلب" value={orderStatusLabel[invoice.status]} />
+        <Fact label="حالة الطلب" value={<StatusPill status={invoice.status} />} />
         <Fact label="عدد القطع" value={num.format(pieces)} />
         <Fact label="العملة" value={currency ?? "—"} ltr />
       </dl>
@@ -219,7 +219,27 @@ export function InvoiceSheet({
   );
 }
 
-function Fact({ label, value, ltr }: { label: string; value: string; ltr?: boolean }) {
+/** Each status in its own colour; backgrounds print too (print-color-adjust: exact on the page). */
+const STATUS_STYLE: Record<OrderStatus, string> = {
+  new: "bg-amber-100 text-amber-900 ring-amber-300",
+  confirmed: "bg-sky-100 text-sky-900 ring-sky-300",
+  in_production: "bg-violet-100 text-violet-900 ring-violet-300",
+  delivered: "bg-emerald-100 text-emerald-900 ring-emerald-300",
+  cancelled: "bg-red-100 text-red-900 ring-red-300",
+};
+
+function StatusPill({ status }: { status: OrderStatus }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs ring-1 ${STATUS_STYLE[status]}`}
+    >
+      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />
+      {orderStatusLabel[status]}
+    </span>
+  );
+}
+
+function Fact({ label, value, ltr }: { label: string; value: ReactNode; ltr?: boolean }) {
   return (
     <div>
       <dt className="text-xs text-muted-foreground">{label}</dt>

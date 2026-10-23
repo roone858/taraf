@@ -264,7 +264,7 @@ function SidebarBody({
                       {count > 0 && (
                         <span
                           className="min-w-5 rounded-full bg-gold px-1.5 text-center text-[0.65rem] leading-5 text-ink"
-                          aria-label={`${count} طلب جديد`}
+                          aria-label={`${count} طلب غير مؤكد`}
                         >
                           {count}
                         </span>

@@ -16,7 +16,7 @@ export const ORDER_STATUSES: OrderStatus[] = [
 ];
 
 export const orderStatusLabel: Record<OrderStatus, string> = {
-  new: "جديد",
+  new: "غير مؤكد",
   confirmed: "مؤكد",
   in_production: "قيد التصنيع",
   delivered: "تم التسليم",
