@@ -96,6 +96,16 @@ export function InvoiceSheet({
               <bdi>{settings.contact_email}</bdi>
             </p>
           )}
+          {settings?.vat_number && (
+            <p>
+              الرقم الضريبي: <bdi className="text-navy tabular-nums">{settings.vat_number}</bdi>
+            </p>
+          )}
+          {settings?.cr_number && (
+            <p>
+              السجل التجاري: <bdi className="text-navy tabular-nums">{settings.cr_number}</bdi>
+            </p>
+          )}
         </Party>
         <Party title="إلى">
           <p className="text-base text-navy">{invoice.customer_name}</p>

@@ -50,6 +50,10 @@ function SettingsPage() {
     if (!d.store_name?.trim()) return void toast.error("اسم المتجر مطلوب");
     const fee = Number(d.delivery_fee ?? 0);
     if (Number.isNaN(fee) || fee < 0) return void toast.error("رسوم التوصيل غير صحيحة");
+    const vat = digits(d.vat_number);
+    const cr = digits(d.cr_number);
+    if (vat && vat.length !== 15) return void toast.error("الرقم الضريبي يتكون من 15 رقماً");
+    if (cr && cr.length !== 10) return void toast.error("رقم السجل التجاري يتكون من 10 أرقام");
     setSaving(true);
     // Home-page fields are owned by Admin → الصفحة الرئيسية; never write them from here
     const {
@@ -70,6 +74,8 @@ function SettingsPage() {
       store_name: rest.store_name.trim(),
       whatsapp_number: rest.whatsapp_number?.replace(/\D/g, "") || null,
       delivery_fee: fee,
+      vat_number: vat || null,
+      cr_number: cr || null,
     };
     for (const k of NULLABLE) row[k] = row[k]?.trim() || null;
     const { error } = await supabase.from("store_settings").update(row).eq("id", 1);
@@ -162,6 +168,34 @@ function SettingsPage() {
               <input className={inp} {...text("address")} />
             </Field>
           </div>
+        </Section>
+
+        <Section
+          title="البيانات التجارية"
+          description="تظهر في الفواتير وأسفل الموقع. اتركها فارغة لإخفائها."
+        >
+          <Field label="الرقم الضريبي (VAT)">
+            <input
+              className={cn(inp, "tabular-nums")}
+              dir="ltr"
+              inputMode="numeric"
+              maxLength={20}
+              placeholder="3XXXXXXXXXXXXX3"
+              {...text("vat_number")}
+            />
+            <Hint>15 رقماً كما في شهادة التسجيل في ضريبة القيمة المضافة.</Hint>
+          </Field>
+          <Field label="رقم السجل التجاري (CR)">
+            <input
+              className={cn(inp, "tabular-nums")}
+              dir="ltr"
+              inputMode="numeric"
+              maxLength={20}
+              placeholder="10XXXXXXXX"
+              {...text("cr_number")}
+            />
+            <Hint>10 أرقام.</Hint>
+          </Field>
         </Section>
 
         <Section
@@ -277,4 +311,9 @@ function IconInput({
       <input className={cn(inp, "mt-0 ps-10", className)} {...props} />
     </div>
   );
+}
+
+/** Keeps only digits (Eastern Arabic digits converted), for VAT / CR numbers. */
+function digits(v: string | null | undefined) {
+  return (v ?? "").replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).replace(/\D/g, "");
 }

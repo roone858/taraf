@@ -148,9 +148,25 @@ export function SiteFooter() {
 
       <div className="border-t border-cream/10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-5 py-6 text-center text-xs text-cream/60 md:flex-row md:text-start lg:px-10">
-          <span>
-            © {new Date().getFullYear()} {s?.store_name ?? "TARAF FURNITURE"} — جميع الحقوق محفوظة
-          </span>
+          <div className="space-y-1">
+            <p>
+              © {new Date().getFullYear()} {s?.store_name ?? "TARAF FURNITURE"} — جميع الحقوق محفوظة
+            </p>
+            {(s?.cr_number || s?.vat_number) && (
+              <p className="flex flex-wrap justify-center gap-x-4 gap-y-0.5 md:justify-start">
+                {s?.cr_number && (
+                  <span>
+                    السجل التجاري: <bdi className="tabular-nums">{s.cr_number}</bdi>
+                  </span>
+                )}
+                {s?.vat_number && (
+                  <span>
+                    الرقم الضريبي: <bdi className="tabular-nums">{s.vat_number}</bdi>
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
           <span className="font-display text-sm text-gold/80">
             حينما تكتمل التفاصيل… يبدأ الترف
           </span>

@@ -455,6 +455,7 @@ export type Database = {
           address: string | null;
           contact_email: string | null;
           contact_phone: string | null;
+          cr_number: string | null;
           currency: string;
           custom_projects: Json;
           delivery_fee: number;
@@ -475,12 +476,14 @@ export type Database = {
           story_title: string;
           twitter_url: string | null;
           updated_at: string;
+          vat_number: string | null;
           whatsapp_number: string | null;
         };
         Insert: {
           address?: string | null;
           contact_email?: string | null;
           contact_phone?: string | null;
+          cr_number?: string | null;
           currency?: string;
           custom_projects?: Json;
           delivery_fee?: number;
@@ -501,12 +504,14 @@ export type Database = {
           story_title?: string;
           twitter_url?: string | null;
           updated_at?: string;
+          vat_number?: string | null;
           whatsapp_number?: string | null;
         };
         Update: {
           address?: string | null;
           contact_email?: string | null;
           contact_phone?: string | null;
+          cr_number?: string | null;
           currency?: string;
           custom_projects?: Json;
           delivery_fee?: number;
@@ -527,6 +532,7 @@ export type Database = {
           story_title?: string;
           twitter_url?: string | null;
           updated_at?: string;
+          vat_number?: string | null;
           whatsapp_number?: string | null;
         };
         Relationships: [];
