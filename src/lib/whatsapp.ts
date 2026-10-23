@@ -85,6 +85,7 @@ export type InvoiceMessageInput = {
   subtotal: number;
   deliveryFee: number;
   total: number;
+  amountPaid?: number | undefined;
   /** Customer-facing invoice page, see invoiceUrl(). */
   invoiceUrl?: string | undefined;
 };
@@ -103,6 +104,8 @@ export function buildInvoiceMessage(o: InvoiceMessageInput) {
         `${idx + 1}. ${i.product_name}${i.variant ? ` (${i.variant})` : ""}\n   ${i.quantity} × ${f(i.unit_price)} = ${f(i.line_total)}`,
     )
     .join("\n");
+  const paid = Number(o.amountPaid ?? 0);
+  const remaining = Math.max(0, Number(o.total) - paid);
   return [
     `مرحباً ${o.customerName}،`,
     `فاتورة طلبك من ${o.storeName}`,
@@ -117,6 +120,12 @@ export function buildInvoiceMessage(o: InvoiceMessageInput) {
     `المجموع الفرعي: ${f(o.subtotal)}`,
     `رسوم التوصيل: ${f(o.deliveryFee)}`,
     `الإجمالي: ${f(o.total)}`,
+    ...(paid > 0
+      ? [
+          `المبلغ المدفوع: ${f(paid)}`,
+          remaining > 0 ? `المتبقي: ${f(remaining)}` : "تم سداد الفاتورة بالكامل",
+        ]
+      : []),
     ...(o.invoiceUrl ? ["", `عرض الفاتورة وطباعتها: ${o.invoiceUrl}`] : []),
     "",
     `شكراً لثقتكم في ${o.storeName}`,

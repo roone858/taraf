@@ -295,6 +295,7 @@ export type Database = {
       orders: {
         Row: {
           address: string;
+          amount_paid: number;
           admin_notes: string | null;
           city: string;
           created_at: string;
@@ -314,6 +315,7 @@ export type Database = {
         };
         Insert: {
           address: string;
+          amount_paid?: number;
           admin_notes?: string | null;
           city: string;
           created_at?: string;
@@ -333,6 +335,7 @@ export type Database = {
         };
         Update: {
           address?: string;
+          amount_paid?: number;
           admin_notes?: string | null;
           city?: string;
           created_at?: string;

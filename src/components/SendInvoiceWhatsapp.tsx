@@ -34,6 +34,7 @@ export function SendInvoiceWhatsapp({
     subtotal: Number(order.subtotal),
     deliveryFee: Number(order.delivery_fee),
     total: Number(order.total),
+    amountPaid: Number(order.amount_paid),
     invoiceUrl: invoiceUrl(order.invoice_token),
   });
 

@@ -56,6 +56,8 @@ export function orderErrorMessage(message: string | undefined): string {
         : "أحد المقاسات المختارة لم يعد متاحاً";
     case "invalid_fee":
       return "رسوم التوصيل غير صحيحة";
+    case "invalid_paid":
+      return "المبلغ المدفوع غير صحيح أو أكبر من الإجمالي";
     case "invalid_status":
       return "حالة الطلب غير صحيحة";
     case "forbidden":

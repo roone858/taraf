@@ -72,6 +72,7 @@ export function OrderEditor({
   const [customer, setCustomer] = useState<Customer>(blankCustomer);
   const [lines, setLines] = useState<Line[]>([]);
   const [fee, setFee] = useState("0");
+  const [paid, setPaid] = useState("0");
   const [status, setStatus] = useState<OrderStatus>("confirmed");
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
@@ -105,10 +106,12 @@ export function OrderEditor({
         })),
       );
       setFee(String(Number(order.delivery_fee)));
+      setPaid(String(Number(order.amount_paid ?? 0)));
     } else {
       setCustomer(blankCustomer);
       setLines([]);
       setFee(String(defaultFee));
+      setPaid("0");
       setStatus("confirmed");
     }
   }, [open, order, defaultFee]);
@@ -122,6 +125,9 @@ export function OrderEditor({
   const subtotal = lines.reduce((t, l) => t + (price(l.unit_price) || 0) * l.quantity, 0);
   const feeValue = price(fee);
   const total = subtotal + (Number.isFinite(feeValue) ? feeValue : 0);
+  const paidValue = paid.trim() === "" ? 0 : price(paid);
+  const paidOk = Number.isFinite(paidValue) && paidValue <= total;
+  const remaining = Math.max(0, total - (Number.isFinite(paidValue) ? paidValue : 0));
   const f = (n: number) => formatPrice(n, currency);
 
   const update = (key: string, patch: Partial<Line>) =>
@@ -168,6 +174,7 @@ export function OrderEditor({
     const bad = lines.find((l) => !l.name.trim() || !Number.isFinite(price(l.unit_price)));
     if (bad) return void toast.error("كل سطر يحتاج اسماً وسعراً صحيحاً");
     if (!Number.isFinite(feeValue)) return void toast.error("رسوم التوصيل غير صحيحة");
+    if (!paidOk) return void toast.error("المبلغ المدفوع غير صحيح أو أكبر من الإجمالي");
 
     setBusy(true);
     const { data: id, error } = await supabase.rpc("admin_save_order", {
@@ -175,6 +182,7 @@ export function OrderEditor({
       _order: {
         ...parsed.data,
         delivery_fee: feeValue,
+        amount_paid: paidValue,
         ...(order ? {} : { status }),
         items: lines.map((l) => ({
           product_id: l.product_id,
@@ -488,7 +496,49 @@ export function OrderEditor({
                 <dt>الإجمالي</dt>
                 <dd className="font-medium">{f(total)}</dd>
               </div>
+              <div className="flex items-center justify-between gap-3 text-muted-foreground">
+                <dt>
+                  <label htmlFor="invoice-paid">المبلغ المدفوع</label>
+                </dt>
+                <dd className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaid(String(total))}
+                    className="h-9 rounded-lg px-2 text-xs text-navy underline decoration-gold underline-offset-4 hover:decoration-navy"
+                  >
+                    تحصيل الكل
+                  </button>
+                  <input
+                    id="invoice-paid"
+                    value={paid}
+                    onChange={(e) => setPaid(e.target.value)}
+                    inputMode="decimal"
+                    dir="ltr"
+                    aria-invalid={!paidOk}
+                    aria-describedby={!paidOk ? "invoice-paid-err" : undefined}
+                    className={cn(
+                      inp,
+                      "mt-0 h-9 w-28 text-right tabular-nums",
+                      !paidOk && "border-destructive",
+                    )}
+                  />
+                </dd>
+              </div>
+              <div
+                className={cn(
+                  "flex justify-between rounded-md px-3 py-2 text-base",
+                  remaining > 0 ? "bg-navy text-cream" : "bg-gold/20 text-navy",
+                )}
+              >
+                <dt>{remaining > 0 ? "المتبقي" : "مدفوعة بالكامل"}</dt>
+                <dd className="font-medium">{f(remaining)}</dd>
+              </div>
             </dl>
+            {!paidOk && (
+              <p id="invoice-paid-err" className="mt-2 text-xs text-destructive">
+                المبلغ المدفوع لا يمكن أن يتجاوز الإجمالي.
+              </p>
+            )}
           </section>
 
           {!order && (

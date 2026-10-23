@@ -17,6 +17,8 @@ export type InvoiceData = {
   subtotal: number;
   delivery_fee: number;
   total: number;
+  /** Missing on data from before payments were recorded; treated as 0. */
+  amount_paid?: number | undefined;
   currency: string | null;
   items: {
     id: string;
@@ -47,6 +49,8 @@ export function InvoiceSheet({
   const f = (n: number) => formatPrice(Number(n), currency);
   const storeName = settings?.store_name ?? "TARAF FURNITURE";
   const pieces = invoice.items.reduce((t, i) => t + i.quantity, 0);
+  const paid = Number(invoice.amount_paid ?? 0);
+  const remaining = Math.max(0, Number(invoice.total) - paid);
 
   return (
     <article className="mx-auto max-w-[210mm] rounded-xl bg-white px-5 py-8 text-sm text-ink shadow-[0_1px_2px_oklch(0.19_0.03_260/0.06),0_12px_32px_-12px_oklch(0.19_0.03_260/0.18)] sm:px-[14mm] sm:py-[14mm] print:max-w-none print:rounded-none print:p-0 print:shadow-none">
@@ -176,10 +180,27 @@ export function InvoiceSheet({
             <dt>رسوم التوصيل</dt>
             <dd>{f(invoice.delivery_fee)}</dd>
           </div>
-          <div className="flex items-baseline justify-between rounded-lg bg-navy px-4 py-3 text-cream">
-            <dt className="text-sm">الإجمالي المستحق</dt>
-            <dd className="text-xl font-medium text-gold">{f(invoice.total)}</dd>
-          </div>
+          {paid > 0 ? (
+            <>
+              <div className="flex justify-between border-t border-navy/15 pt-2.5 text-navy">
+                <dt>الإجمالي</dt>
+                <dd className="font-medium">{f(invoice.total)}</dd>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <dt>المبلغ المدفوع</dt>
+                <dd>{f(paid)}</dd>
+              </div>
+              <div className="flex items-baseline justify-between rounded-lg bg-navy px-4 py-3 text-cream">
+                <dt className="text-sm">{remaining > 0 ? "المتبقي" : "مدفوعة بالكامل"}</dt>
+                <dd className="text-xl font-medium text-gold">{f(remaining)}</dd>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-baseline justify-between rounded-lg bg-navy px-4 py-3 text-cream">
+              <dt className="text-sm">الإجمالي المستحق</dt>
+              <dd className="text-xl font-medium text-gold">{f(invoice.total)}</dd>
+            </div>
+          )}
         </dl>
       </section>
 

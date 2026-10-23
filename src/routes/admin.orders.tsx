@@ -697,6 +697,18 @@ function OrderDialog({
                   <dt>الإجمالي</dt>
                   <dd className="font-medium">{formatPrice(Number(order.total), currency)}</dd>
                 </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <dt>المبلغ المدفوع</dt>
+                  <dd>{formatPrice(Number(order.amount_paid), currency)}</dd>
+                </div>
+                <div className="flex justify-between text-navy">
+                  <dt>المتبقي</dt>
+                  <dd className="font-medium">
+                    {Number(order.amount_paid) >= Number(order.total)
+                      ? "مدفوعة بالكامل"
+                      : formatPrice(Number(order.total) - Number(order.amount_paid), currency)}
+                  </dd>
+                </div>
               </dl>
             </section>
 
